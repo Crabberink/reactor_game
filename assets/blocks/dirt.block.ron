@@ -1,0 +1,6 @@
+BlockDefinition(
+	name: "Dirt",
+	key: "rg_dirt",
+	transparent: false,
+	hardness: 1.0
+)

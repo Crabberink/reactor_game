@@ -1,0 +1,6 @@
+BlockDefinition(
+	name: "Zart",
+	key: "rg_zart",
+	transparent: false,
+	hardness: 1.0
+)
