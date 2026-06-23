@@ -34,6 +34,42 @@ impl Plugin for VoxelsPlugin {
 	}
 }
 
+pub type BlockPos = IVec3;
+pub type ChunkPos = IVec3;
+pub type LocalChunkPos = IVec3;
+
+pub fn block_to_chunk_local(block_pos: BlockPos) -> LocalChunkPos {
+	block_pos.rem_euclid(IVec3::splat(CHUNK_SIZE as i32))
+}
+
+pub fn block_to_chunk(block_pos: BlockPos) -> ChunkPos {
+	block_pos.div_euclid(IVec3::splat(CHUNK_SIZE as i32))
+}
+
+pub fn world_to_block(world_pos: Vec3) -> BlockPos {
+	world_pos.floor().as_ivec3()
+}
+
+pub fn world_to_chunk_local(world_pos: Vec3) -> LocalChunkPos {
+	block_to_chunk_local(world_to_block(world_pos))
+}
+
+pub fn world_to_chunk(world_pos: Vec3) -> ChunkPos {
+	block_to_chunk(world_to_block(world_pos))
+}
+
+pub fn block_to_world(block_pos: BlockPos) -> Vec3 {
+	block_pos.as_vec3()
+}
+
+pub fn chunk_to_block(chunk_pos: ChunkPos) -> BlockPos {
+	chunk_pos * CHUNK_SIZE as i32
+}
+
+pub fn chunk_to_world(chunk_pos: ChunkPos) -> Vec3 {
+	block_to_world(chunk_to_block(chunk_pos))
+}
+
 pub const CHUNK_SIZE: usize = 16;
 pub const VOXEL_SIZE: f32 = 1.0;
 

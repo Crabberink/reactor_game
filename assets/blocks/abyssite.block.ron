@@ -1,0 +1,6 @@
+BlockDefinition(
+	name: "Abyssite",
+	key: "rg_abyssite",
+	hardness: 2.0,
+	texture: "textures/TestTexture.png"
+)

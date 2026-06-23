@@ -2,16 +2,16 @@ pub mod voxels;
 pub mod blockdefs;
 pub mod chunks;
 
+use bevy::render::error_handler::{ErrorType, RenderErrorHandler, RenderErrorPolicy};
 use bevy::{
     prelude::*,
 };
 
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
-use bevy_flycam::PlayerPlugin;
 use voxels::VoxelsPlugin;
 use blockdefs::BlocksPlugin;
 
-use crate::chunks::ChunksPlugin;
+use crate::chunks::{ChunkLoader, ChunksPlugin};
 
 
 fn main() {
@@ -20,14 +20,21 @@ fn main() {
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
         )
+        .insert_resource(RenderErrorHandler(
+            |error, _main_world, _render_world| match error.ty {
+                ErrorType::Validation => RenderErrorPolicy::Ignore,
+                _ => RenderErrorPolicy::Ignore,
+            }
+        ))
         .init_state::<GameState>()
         .add_plugins(BlocksPlugin)
         .add_plugins(VoxelsPlugin)
         .add_plugins(ChunksPlugin)
-        .add_plugins(PlayerPlugin)
+        // .add_plugins(PlayerPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, fps_system.run_if(in_state(GameState::Playing)))
+        .add_systems(Update, forward_system.run_if(in_state(GameState::Playing)))
         .run();
 }
 
@@ -57,7 +64,7 @@ fn setup(
 
     commands.spawn((
         PointLight {
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform::from_xyz(4.0, 8.0, 4.0),
@@ -65,15 +72,22 @@ fn setup(
 
     commands.spawn((
         DirectionalLight {
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform::from_xyz(-4.0, 8.0, -4.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 
-    // commands.spawn((
-    //     Camera3d::default(),
-    //     Transform::from_xyz(-20.0, 20.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
-    // ));
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-12.0, 12.0, 12.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ChunkLoader::of_range(1),
+    ));
 }
 
+fn forward_system(mut players: Query<&mut Transform, With<Camera3d>>) {
+    for mut transform in players.iter_mut() {
+        let forward: Vec3 = transform.forward().into();
+        transform.translation += forward * 4.5;
+    }
+}
