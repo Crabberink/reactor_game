@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.18.1", features = ["dynamic_linking", "trace_tracy"] }
+bevy = { version = "0.18.1", features = ["dynamic_linking", "trace_tracy", "debug"] }
 bevy_common_assets = { version = "0.16.0", features = ["ron"] }
 bevy_dylib = "0.18.1"
 bevy_flycam = "0.18.0"
+rand = "0.10.1"
 ron = "0.12.1"
 serde = "1.0.228"
 strum = "0.28.0"

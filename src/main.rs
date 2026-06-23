@@ -1,5 +1,6 @@
 pub mod voxels;
 pub mod blockdefs;
+pub mod chunks;
 
 use bevy::{
     prelude::*,
@@ -10,13 +11,19 @@ use bevy_flycam::PlayerPlugin;
 use voxels::VoxelsPlugin;
 use blockdefs::BlocksPlugin;
 
+use crate::chunks::ChunksPlugin;
+
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(
+            DefaultPlugins
+                .set(ImagePlugin::default_nearest())
+        )
         .init_state::<GameState>()
         .add_plugins(BlocksPlugin)
         .add_plugins(VoxelsPlugin)
+        .add_plugins(ChunksPlugin)
         .add_plugins(PlayerPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
@@ -47,39 +54,6 @@ fn setup(
         MeshMaterial3d(materials.add(Color::WHITE)),
         Transform::from_xyz(0.0, 0.0, 0.0)
     ));
-
-    let mut debug_voxel_data = [[[0; 16]; 16]; 16];
-    for (x, plane) in debug_voxel_data.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-        for (y, row) in plane.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-            for (z, voxel) in row.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-                *voxel = if (x & y & z) == 0 { 1 } else { 0 };
-            }
-        }
-    }
-
-    for x in 0usize..10 {
-        for y in 0usize..10 {
-            for z in 0usize..10 {
-                commands.spawn((
-                    voxels::Chunk {
-                        coord: IVec3::new(x as i32, y as i32, z as i32),
-                        voxels: debug_voxel_data,
-                    },  
-                    Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
-                    Transform::from_xyz(
-                        (x * voxels::CHUNK_SIZE) as f32 * voxels::VOXEL_SIZE,
-                        (y * voxels::CHUNK_SIZE) as f32 * voxels::VOXEL_SIZE,
-                        (z * voxels::CHUNK_SIZE) as f32 * voxels::VOXEL_SIZE
-                    ),
-                    MeshMaterial3d(materials.add(Color::hsl(0.0, 1.0, 1.0))),
-                    voxels::DirtyChunk,
-                ));
-            }
-        }
-    }
-
-    
-
 
     commands.spawn((
         PointLight {

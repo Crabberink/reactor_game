@@ -1,4 +1,3 @@
-use bevy::pbr::MaterialExtension;
 use bevy::render::render_resource::*;
 use bevy::shader::ShaderRef;
 use bevy::{asset::RenderAssetUsages, prelude::*};
@@ -6,6 +5,7 @@ use bevy::mesh::*;
 use strum::IntoEnumIterator;
 use std::collections::HashMap;
 use strum_macros::EnumIter;
+use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 
 use crate::GameState;
 use crate::blockdefs::{BlockId, BlockRegistry};
@@ -28,6 +28,7 @@ pub struct ChunkMap(HashMap<IVec3, Entity>);
 pub struct VoxelsPlugin;
 impl Plugin for VoxelsPlugin {
 	fn build(&self, app: &mut App) {
+		app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
 		app.insert_resource(ChunkMap(HashMap::new()));
 		app.add_systems(Update, generate_chunk_mesh.run_if(in_state(GameState::Playing)));
 	}
@@ -94,9 +95,16 @@ fn build_mesh(chunk: &Chunk, registry: &BlockRegistry) -> Mesh {
 
 						let face_data = generate_voxel_face(face, offset);
 
+						let face_uvs = [
+							[def.uv_rect.min.x, def.uv_rect.min.y],
+							[def.uv_rect.max.x, def.uv_rect.min.y],
+							[def.uv_rect.max.x, def.uv_rect.max.y],
+							[def.uv_rect.min.x, def.uv_rect.max.y],
+						];
+
 						positions.extend_from_slice(&face_data.positions);
 						normals.extend_from_slice(&face_data.normals);
-						uvs.extend_from_slice(&face_data.uvs);
+						uvs.extend_from_slice(&face_uvs);
 						indices.extend_from_slice(&[
 							base, base + 2, base + 1,
 							base, base + 3, base + 2,
@@ -146,21 +154,12 @@ impl VoxelFace {
 struct VoxelFaceData {
 	positions: [[f32; 3]; 4],
 	normals: [[f32; 3]; 4],
-	uvs: [[f32; 2]; 4],
 }
 
 fn generate_voxel_face(face: VoxelFace, offset: Vec3) -> VoxelFaceData {
 
-	let  positions: [[f32; 3]; 4];
+	let positions: [[f32; 3]; 4];
 	let normals: [[f32; 3]; 4];
-
-	//These can come later for textures
-	let uvs: [[f32; 2]; 4] = [
-		[0.0, 0.0],
-		[1.0, 0.0],
-		[1.0, 1.0],
-		[0.0, 1.0]
-	];
 
 	match face {
 		VoxelFace::Front => {
@@ -223,19 +222,23 @@ fn generate_voxel_face(face: VoxelFace, offset: Vec3) -> VoxelFaceData {
 	VoxelFaceData {
 		positions,
 		normals,
-		uvs,
 	}
 }
 
-#[derive(Asset, TypePath, AsBindGroup, Clone)]
-struct VoxelMaterialExtension {
-	#[texture(100, dimension = "2d_array")]
+#[derive(Resource)]
+pub struct ChunkMaterialRes(pub Handle<VoxelMaterial>);
+
+#[derive(Asset, AsBindGroup, Reflect, Clone)]
+pub struct VoxelMaterialExtension {
+	#[texture(100, dimension = "2d")]
 	#[sampler(101)]
-	texture_array: Handle<Image>,
+	pub atlas: Handle<Image>,
 }
 
 impl MaterialExtension for VoxelMaterialExtension {
 	fn fragment_shader() -> ShaderRef {
-		"shaders/voxel_extension.wgsl".into()
+		"shaders/voxel.wgsl".into()
 	}
 }
+
+pub type VoxelMaterial = ExtendedMaterial<StandardMaterial, VoxelMaterialExtension>;
