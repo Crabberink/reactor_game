@@ -40,11 +40,14 @@ enum PlayerAction {
 	Jump
 }
 
+const PLAYER_HEIGHT: f32 = 1.8;
+const GROUNDED_CHECK_RADIUS : f32 = 0.4;
+
 fn setup_player(mut commands: Commands) {
 	let head = commands.spawn((
 		Camera3d::default(),
 		PlayerCamera,
-		Transform::from_xyz(0.0, 1.0, 0.0),
+		Transform::from_xyz(0.0, (PLAYER_HEIGHT / 2.0) - 0.1, 0.0),
 	)).id();
 
 	let player = commands.spawn((
@@ -57,7 +60,14 @@ fn setup_player(mut commands: Commands) {
 		MoveSpeed { speed: 5.0, accel_sharpness: 10.0 },
 		Inputs { jump: false },
 		RigidBody::Dynamic,
-		Collider::cylinder(1.0, 1.0),
+		Collider::cylinder(1.0, PLAYER_HEIGHT),
+		// Yo I PROMISE the magic numbers are better this way constants are for LOSERS (ignoring the existing constants)
+		ShapeCaster::new(
+			Collider::cylinder(GROUNDED_CHECK_RADIUS, 0.1),
+			Vec3::new(0.0, (-PLAYER_HEIGHT / 2.0) + 0.05, 0.0),
+			Quat::IDENTITY,
+			Dir3::Y,
+		).with_max_distance(0.1).with_ignore_self(true),
 		InputMap::<PlayerAction>::default()
 			.with_dual_axis(PlayerAction::Move, VirtualDPad::wasd())
 			.with_dual_axis(PlayerAction::Move, GamepadStick::LEFT)
@@ -115,6 +125,7 @@ fn player_movement(
 		&mut Transform,
 		&mut PlayerMovement,
 		&mut Inputs,
+		&ShapeHits,
 		&MoveSpeed,
 		&ActionState<PlayerAction>,
 	), Without<PlayerCamera>>,
@@ -125,7 +136,7 @@ fn player_movement(
 	window.set_cursor_position(Some(cursor_pos));
 	cursor_options.grab_mode = CursorGrabMode::Locked;
 
-	for (mut forces, mut transform, mut player_movement, mut inputs, move_speed, actions) in players.iter_mut() {
+	for (mut forces, mut transform, mut player_movement, mut inputs, shape_hits, move_speed, actions) in players.iter_mut() {
 		let move_axis = actions.clamped_axis_pair(&PlayerAction::Move);
 
 		let forward = transform.forward();
@@ -157,7 +168,9 @@ fn player_movement(
 			head_transform.rotation = Quat::from_axis_angle(Vec3::X, player_movement.head_azimuth);
 		}
 
-		if inputs.take_jump() {
+		let grounded = !shape_hits.is_empty();
+
+		if inputs.take_jump() && grounded {
 			info!("Jumping");
 			forces.apply_linear_acceleration(Vec3::new(0.0, 200.0, 0.0));
 		}
