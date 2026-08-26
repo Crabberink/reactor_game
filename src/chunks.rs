@@ -1,7 +1,7 @@
 use bevy::{platform::collections::{HashMap, HashSet}, prelude::*};
 use rand::RngExt;
 
-use crate::{GameState, blockdefs::BlockRegistry, voxels::{self, ChunkMaterialRes, ChunkPos, VoxelMaterial, chunk_to_world, world_to_chunk}};
+use crate::{GameState, voxels::{self, ChunkMaterialRes, world_to_chunk}};
 
 pub struct ChunksPlugin;
 
@@ -58,15 +58,34 @@ fn update_loaded_chunks(
 
     for &pos in &desired {
         if !loaded.chunks.contains_key(&pos) {
-            info!("Loaded chunk at pos {}", pos);
-            let new_chunk = spawn_chunk(pos, &mut commands, chunk_material.0.clone());
+            let mut rng = rand::rng();
+
+            let mut debug_voxel_data = [[[0; 16]; 16]; 16];
+            for (x, plane) in debug_voxel_data.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
+                for (y, row) in plane.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
+                    for (z, voxel) in row.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
+                        let world_y = y as i32 + (pos.y * voxels::CHUNK_SIZE as i32);
+
+                        *voxel = if world_y < 0 {
+                            if rng.random_bool(0.5) {
+                                2
+                            } else {
+                                3
+                            }
+                        } else { 
+                            1
+                        };
+                    }
+                }
+            }
+
+            let new_chunk = voxels::spawn_chunk(pos, debug_voxel_data, chunk_material.0.clone(), &mut commands);
             loaded.chunks.insert(pos, new_chunk);
         }
     }
 
     loaded.chunks.retain(|pos, chunk_entity| {
         if !desired.contains(pos) {
-            warn!("Supposed to despawn chunk at pos {}", pos);
             commands.entity(*chunk_entity).despawn();
             false
         } else {
@@ -75,37 +94,7 @@ fn update_loaded_chunks(
     });
 }
 
-fn spawn_chunk(chunk_pos: ChunkPos, commands: &mut Commands, material: Handle<VoxelMaterial>) -> Entity {
-    let mut rng = rand::rng();
 
-    let mut debug_voxel_data = [[[0; 16]; 16]; 16];
-    for (x, plane) in debug_voxel_data.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-        for (y, row) in plane.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-            for (z, voxel) in row.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-                *voxel = if (x & y & z) == 0 {
-                    if rng.random_bool(0.5) {
-                        2
-                    } else {
-                        3
-                    }
-                } else { 
-                    1
-                };
-            }
-        }
-    }
-
-    commands.spawn((
-        voxels::Chunk {
-            coord: chunk_pos,
-            voxels: debug_voxel_data,
-        },
-        Mesh3d::default(),
-        Transform::from_translation(chunk_to_world(chunk_pos)),
-        MeshMaterial3d(material),
-        voxels::DirtyChunk,
-    )).id()
-}
 
 // fn spawn_chunks(
 // 	chunk_material: Res<ChunkMaterialRes>,

@@ -171,7 +171,6 @@ fn player_movement(
 		let grounded = !shape_hits.is_empty();
 
 		if inputs.take_jump() && grounded {
-			info!("Jumping");
 			forces.apply_linear_acceleration(Vec3::new(0.0, 200.0, 0.0));
 		}
 	}

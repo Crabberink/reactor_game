@@ -1,3 +1,6 @@
+pub mod collision;
+
+use avian3d::dynamics::rigid_body::RigidBody;
 use bevy::render::render_resource::*;
 use bevy::shader::ShaderRef;
 use bevy::{asset::RenderAssetUsages, prelude::*};
@@ -9,6 +12,7 @@ use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 
 use crate::GameState;
 use crate::blockdefs::{BlockId, BlockRegistry};
+use crate::voxels::collision::VoxelCollisionPlugin;
 
 #[derive(Component)]
 pub struct Chunk {
@@ -18,7 +22,7 @@ pub struct Chunk {
 
 #[derive(Component)]
 #[component(storage = "SparseSet")]
-pub struct DirtyChunk;
+pub struct DirtyChunkMesh;
 
 //stop the unused warning for now, will be used later when we implement chunk loading and unloading
 #[allow(dead_code)]
@@ -29,6 +33,7 @@ pub struct VoxelsPlugin;
 impl Plugin for VoxelsPlugin {
 	fn build(&self, app: &mut App) {
 		app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
+		app.add_plugins(VoxelCollisionPlugin);
 		app.insert_resource(ChunkMap(HashMap::new()));
 		app.add_systems(Update, generate_chunk_mesh.run_if(in_state(GameState::Playing)));
 	}
@@ -81,18 +86,36 @@ pub fn chunk_to_world(chunk_pos: ChunkPos) -> Vec3 {
 pub const CHUNK_SIZE: usize = 16;
 pub const VOXEL_SIZE: f32 = 1.0;
 
+pub fn spawn_chunk(chunk_pos: ChunkPos, voxel_data: [[[BlockId; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], material: Handle<VoxelMaterial>, commands: &mut Commands) -> Entity {
+    commands.spawn((
+        Chunk {
+            coord: chunk_pos,
+            voxels: voxel_data,
+        },
+        Mesh3d::default(),
+        Transform::from_translation(chunk_to_world(chunk_pos)),
+        MeshMaterial3d(material),
+        DirtyChunkMesh,
+		RigidBody::Static,
+        collision::DirtyChunkCollider,
+    )).id()
+}
+
 fn generate_chunk_mesh(
 	registry: Res<BlockRegistry>,
 	mut commands: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
-	mut dirty_chunks: Query<(Entity, &mut Mesh3d, &Chunk), With<DirtyChunk>>
+	dirty_chunks: Query<(Entity, &Chunk), With<DirtyChunkMesh>>
 ) {
-    for (entity, mut mesh_handle, chunk) in dirty_chunks.iter_mut() {
-        let new_mesh = build_mesh(chunk, &registry);
-		
-        mesh_handle.0 = meshes.add(new_mesh);
+    for (entity, chunk) in dirty_chunks.iter() {
+        let Some(new_mesh) = build_mesh(chunk, &registry) else {
+			commands.entity(entity).remove::<Mesh3d>();
+			continue;
+		};
 
-		commands.entity(entity).remove::<DirtyChunk>(); 
+
+		commands.entity(entity).insert(Mesh3d(meshes.add(new_mesh)));
+		commands.entity(entity).remove::<DirtyChunkMesh>();
     }
 }
 
@@ -102,12 +125,15 @@ fn is_solid(chunk: &Chunk, pos: IVec3, registry: &BlockRegistry) -> bool {
 	if pos.z < 0 || pos.z >= CHUNK_SIZE as i32 { return false; }
 
 	let id = chunk.voxels[pos.x as usize][pos.y as usize][pos.z as usize];
-	let def = registry.get_def(id);
+	let Some(def) = registry.get_def(id) else {
+		warn!("Treating nonexistent block id: {} as transparent!", id);
+		return false;
+	};
 
 	!(def.empty || def.transparent)
 }
 
-fn build_mesh(chunk: &Chunk, registry: &BlockRegistry) -> Mesh {
+fn build_mesh(chunk: &Chunk, registry: &BlockRegistry) -> Option<Mesh> {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
 
 	let mut positions: Vec<[f32; 3]> = Vec::new();
@@ -119,7 +145,10 @@ fn build_mesh(chunk: &Chunk, registry: &BlockRegistry) -> Mesh {
 		for y in 0..CHUNK_SIZE {
 			for z in 0..CHUNK_SIZE {
 				let id = chunk.voxels[x][y][z];
-				let def = registry.get_def(id);
+				let Some(def) = registry.get_def(id) else { 
+					warn!("Skipping nonexistent block id: {}!", id);
+					continue;
+				};
 				
 				if def.empty { continue; }
 
@@ -161,12 +190,14 @@ fn build_mesh(chunk: &Chunk, registry: &BlockRegistry) -> Mesh {
 		}
 	}
 
+	if indices.is_empty() { return None; }
+
 	mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
 	mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
 	mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
 	mesh.insert_indices(Indices::U32(indices));
 
-	mesh
+	Some(mesh)
 }
 
 

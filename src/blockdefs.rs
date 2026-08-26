@@ -24,17 +24,19 @@ impl Plugin for BlocksPlugin {
 }
 
 #[allow(dead_code)]
-#[derive(Asset, TypePath, Deserialize, Clone)]
+#[derive(Asset, TypePath, Deserialize, Clone, Debug)]
 pub struct BlockDefinition {
 	// Defined values
 	pub name: String,
 	pub key: String,
 	#[serde(default)]
 	pub hardness: f32,
-	#[serde(default = "default_transparent")]
+	#[serde(default = "default_false")]
 	pub transparent: bool,
-	#[serde(default = "default_transparent")]
+	#[serde(default = "default_false")]
 	pub empty: bool,
+	#[serde(default = "default_true")]
+	pub solid: bool,
 	#[serde(default = "default_texture")]
 	pub texture: String,
 
@@ -47,7 +49,11 @@ fn default_texture() -> String {
 	"textures/TestTexture.png".to_string()
 }
 
-fn default_transparent() -> bool {
+fn default_true() -> bool {
+	true
+}
+
+fn default_false() -> bool {
 	false
 }
 
@@ -65,8 +71,12 @@ impl BlockRegistry {
 		self.key_to_id.get(key).copied()
 	}
 
-	pub fn get_def(&self, id: BlockId) -> &BlockDefinition {
-		&self.definitions[id as usize]
+	pub fn get_def(&self, id: BlockId) -> Option<&BlockDefinition> {
+		if id >= self.definitions.len() as u16 {
+			return None;
+		}
+
+		Some(&self.definitions[id as usize])
 	}
 
 	fn register(&mut self, block_def: BlockDefinition) {

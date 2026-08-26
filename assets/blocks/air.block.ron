@@ -2,4 +2,5 @@ BlockDefinition(
 	name: "Air",
 	key: "rg_air",
 	empty: true,
+	solid: false,
 )

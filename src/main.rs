@@ -32,7 +32,7 @@ fn main() {
         .init_state::<GameState>()
         .add_plugins(BlocksPlugin)
         .add_plugins(VoxelsPlugin)
-        // .add_plugins(ChunksPlugin)
+        .add_plugins(ChunksPlugin)
         .add_plugins(PlayerPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
