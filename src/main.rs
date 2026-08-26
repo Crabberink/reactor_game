@@ -7,7 +7,7 @@ use bevy::render::error_handler::{ErrorType, RenderErrorHandler, RenderErrorPoli
 use bevy::{
     prelude::*,
 };
-
+use avian3d::prelude::*;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use voxels::VoxelsPlugin;
 use blockdefs::BlocksPlugin;
@@ -18,10 +18,11 @@ use crate::player::PlayerPlugin;
 
 fn main() {
     App::new()
-        .add_plugins(
+        .add_plugins((
             DefaultPlugins
-                .set(ImagePlugin::default_nearest())
-        )
+                .set(ImagePlugin::default_nearest()),
+            PhysicsPlugins::default()
+        ))
         .insert_resource(RenderErrorHandler(
             |error, _main_world, _render_world| match error.ty {
                 ErrorType::Validation => RenderErrorPolicy::Ignore,
@@ -31,9 +32,8 @@ fn main() {
         .init_state::<GameState>()
         .add_plugins(BlocksPlugin)
         .add_plugins(VoxelsPlugin)
-        .add_plugins(ChunksPlugin)
+        // .add_plugins(ChunksPlugin)
         .add_plugins(PlayerPlugin)
-        // .add_plugins(PlayerPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, fps_system.run_if(in_state(GameState::Playing)))
@@ -78,5 +78,13 @@ fn setup(
             ..default()
         },
         Transform::from_xyz(-4.0, 8.0, -4.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
+
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(100.0, 1.0, 100.0))),
+        MeshMaterial3d(materials.add(Color::linear_rgb(1.0, 0.0, 0.0))),
+        Transform::from_xyz(0.0, -3.0, 0.0),
+        RigidBody::Static,
+        Collider::cuboid(100.0, 1.0, 100.0)
     ));
 }

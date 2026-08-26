@@ -1,5 +1,5 @@
 {
-	"workbench.colorTheme": "One Monokai",
+	"workbench.colorTheme": "GitHub Dark Default",
 	"wgsl-analyzer.customImports": {
         "bevy_pbr::clustered_forward": "https://raw.githubusercontent.com/bevyengine/bevy/main/crates/bevy_pbr/src/render/clustered_forward.wgsl",
         "bevy_pbr::mesh_bindings": "https://raw.githubusercontent.com/bevyengine/bevy/main/crates/bevy_pbr/src/render/mesh_bindings.wgsl",
