@@ -1,7 +1,7 @@
 use avian3d::{prelude::*};
 use bevy::{prelude::*, window::{CursorGrabMode, CursorOptions}};
 use leafwing_input_manager::prelude::*;
-use crate::{GameState, chunks::ChunkLoader};
+use crate::{GameState, blockdefs::BlockRegistry, chunks::ChunkLoader, voxels::{self, VoxelWorld}};
 
 pub struct PlayerPlugin;
 
@@ -11,7 +11,7 @@ impl Plugin for PlayerPlugin {
 			.add_plugins(InputManagerPlugin::<PlayerAction>::default())
             .add_systems(OnEnter(GameState::Playing), setup_player)
 			.add_systems(Update, check_input)
-			.add_systems(FixedUpdate, player_movement.run_if(in_state(GameState::Playing)));
+			.add_systems(FixedUpdate, (block_placing, block_breaking, player_movement).chain().run_if(in_state(GameState::Playing)));
 	}
 }
 
@@ -37,7 +37,9 @@ enum PlayerAction {
 	Move,
 	#[actionlike(DualAxis)]
 	Look,
-	Jump
+	Jump,
+	Break,
+	Place,
 }
 
 const PLAYER_HEIGHT: f32 = 1.8;
@@ -51,16 +53,18 @@ fn setup_player(mut commands: Commands) {
 	)).id();
 
 	let player = commands.spawn((
-        Transform::from_xyz(-12.0, 12.0, 12.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ChunkLoader::of_range(1),
+        Transform::from_xyz(-12.0, 12.0, 12.0).looking_to(Dir3::NEG_Z,Dir3::Y),
+        ChunkLoader::of_range(5),
 		PlayerMovement {
 			head,
 			head_azimuth: 0.0,
 		},
 		MoveSpeed { speed: 5.0, accel_sharpness: 10.0 },
-		Inputs { jump: false },
+		Inputs::default(),
 		RigidBody::Dynamic,
-		Collider::cylinder(1.0, PLAYER_HEIGHT),
+		Collider::cylinder(0.4, PLAYER_HEIGHT),
+		LockedAxes::new().lock_rotation_x().lock_rotation_y().lock_rotation_z(),
+		Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
 		// Yo I PROMISE the magic numbers are better this way constants are for LOSERS (ignoring the existing constants)
 		ShapeCaster::new(
 			Collider::cylinder(GROUNDED_CHECK_RADIUS, 0.1),
@@ -74,18 +78,34 @@ fn setup_player(mut commands: Commands) {
 			.with_dual_axis(PlayerAction::Look, MouseMove::default())
 			.with_dual_axis(PlayerAction::Look, GamepadStick::RIGHT)
 			.with(PlayerAction::Jump, KeyCode::Space)
-			.with(PlayerAction::Jump, GamepadButton::South),
+			.with(PlayerAction::Jump, GamepadButton::South)
+			.with(PlayerAction::Break, MouseButton::Left)
+			.with(PlayerAction::Break, GamepadButton::RightTrigger)
+			.with(PlayerAction::Place, MouseButton::Right)
+			.with(PlayerAction::Place, GamepadButton::LeftTrigger)
     )).id();
 
+	let raycast_filter = SpatialQueryFilter::default()
+		.with_excluded_entities([player, head]);
+
 	commands.entity(head).insert(ChildOf(player));
+	commands.entity(head).insert(
+		RayCaster::new(Vec3::ZERO, Dir3::NEG_Z)
+			.with_ignore_self(true)
+			.with_max_distance(5.0)
+			.with_max_hits(1)
+			.with_query_filter(raycast_filter)
+	);
 }
 
 const LOOK_SENSITIVITY: f32 = 0.005;
 
 // Stores inputs for FixedUpdate 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Inputs {
 	jump: bool,
+	place: bool,
+	breaking: bool,
 }
 
 impl Inputs {
@@ -101,6 +121,26 @@ impl Inputs {
 		
 		value
 	}
+	fn register_place(&mut self, value: bool) {
+		if value { self.place = true; }
+	}
+	fn take_place(&mut self) -> bool {
+		let value = self.place;
+
+		self.place = false;
+
+		value
+	}
+	fn register_breaking(&mut self, value: bool) {
+		if value { self.breaking = true; }
+	}
+	fn take_breaking(&mut self) -> bool {
+		let value = self.breaking;
+
+		self.breaking = false;
+
+		value
+	}
 }
 
 fn check_input(
@@ -112,6 +152,8 @@ fn check_input(
 	
 	for (mut inputs, actions) in players.iter_mut() {
 		inputs.register_jump(actions.just_pressed(&PlayerAction::Jump));
+		inputs.register_place(actions.just_pressed(&PlayerAction::Place));
+		inputs.register_breaking(actions.just_pressed(&PlayerAction::Break));
 	}
 }
 
@@ -171,8 +213,78 @@ fn player_movement(
 		let grounded = !shape_hits.is_empty();
 
 		if inputs.take_jump() && grounded {
-			forces.apply_linear_acceleration(Vec3::new(0.0, 200.0, 0.0));
+			forces.apply_linear_acceleration(Vec3::new(0.0, 300.0, 0.0));
 		}
 	}
 
+}
+
+fn block_breaking(
+	block_registry: Res<BlockRegistry>,
+	mut players: Query<(
+		&mut Inputs,
+		&PlayerMovement,
+	), Without<PlayerCamera>>,
+	player_heads: Query<(&RayCaster, &RayHits), With<PlayerCamera>>,
+	mut voxel_world: VoxelWorld,
+) {
+	let Some(air_id) = block_registry.get_id("rg_air") else {
+		error!("Failed to get a block id!");
+		return;
+	};
+
+	for (mut inputs, player_movement) in players.iter_mut() {
+
+		if !inputs.take_breaking() { continue; }
+
+		info!("Yo we breakin");
+
+		let Ok((ray_caster, ray_hits)) = player_heads.get(player_movement.head) else { continue; };
+		let Some(hit) = ray_hits.iter().next() else { continue; };
+
+		info!("AND we hittin");
+
+		let hit_position = (hit.distance + 0.01) * ray_caster.global_direction() + ray_caster.global_origin();
+
+		let block_positon = voxels::world_to_block(hit_position);
+
+		let broke = voxel_world.set_block(block_positon, air_id);
+
+		info!("We broke? {}", broke);
+	}
+}
+
+fn block_placing(
+	block_registry: Res<BlockRegistry>,
+	mut players: Query<(
+		&mut Inputs,
+		&PlayerMovement,
+	), Without<PlayerCamera>>,
+	player_heads: Query<(&RayCaster, &RayHits), With<PlayerCamera>>,
+	mut voxel_world: VoxelWorld,
+) {
+	let Some(dirt_id) = block_registry.get_id("rg_dirt") else {
+		error!("Failed to get a block id!");
+		return;
+	};
+
+	for (mut inputs, player_movement) in players.iter_mut() {
+
+		if !inputs.take_place() { continue; }
+
+		info!("Yo we placin");
+
+		let Ok((ray_caster, ray_hits)) = player_heads.get(player_movement.head) else { continue; };
+		let Some(hit) = ray_hits.iter().next() else { continue; };
+
+		info!("AND we hittin");
+
+		let hit_position = (hit.distance - 0.01) * ray_caster.global_direction() + ray_caster.global_origin();
+
+		let block_positon = voxels::world_to_block(hit_position);
+
+		let replaced = voxel_world.set_block(block_positon, dirt_id);
+
+		info!("We place? {}", replaced);
+	}
 }

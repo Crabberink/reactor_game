@@ -1,15 +1,19 @@
-use bevy::{platform::collections::{HashMap, HashSet}, prelude::*};
+use bevy::{platform::collections::{HashSet}, prelude::*};
 use rand::RngExt;
 
-use crate::{GameState, voxels::{self, ChunkMaterialRes, world_to_chunk}};
+use crate::{GameState, voxels::{self, ChunkMap, ChunkMaterialRes, world_to_chunk}};
 
 pub struct ChunksPlugin;
 
 impl Plugin for ChunksPlugin {
 	fn build(&self, app: &mut App) {
         app
-            .init_resource::<LoadedChunks>()
-            .add_systems(Update, update_loaded_chunks.run_if(in_state(GameState::Playing)));
+            .add_systems(Update, 
+                update_loaded_chunks
+                    .before(voxels::generate_chunk_mesh)
+                    .before(voxels::collision::generate_chunk_collider)
+                    .run_if(in_state(GameState::Playing)
+            ));
 		// app.add_systems(OnEnter(GameState::Playing), spawn_chunks);
 	}
 }
@@ -26,14 +30,9 @@ impl ChunkLoader {
     }
 }
 
-#[derive(Resource, Default)]
-pub struct LoadedChunks {
-    pub chunks: HashMap<IVec3, Entity>,
-}
-
 fn update_loaded_chunks(
     chunk_material: Res<ChunkMaterialRes>,
-    mut loaded: ResMut<LoadedChunks>,
+    mut loaded: ResMut<ChunkMap>,
     mut loaders: Query<(&Transform, &mut ChunkLoader)>,
     mut commands: Commands,
 ) {
@@ -61,9 +60,9 @@ fn update_loaded_chunks(
             let mut rng = rand::rng();
 
             let mut debug_voxel_data = [[[0; 16]; 16]; 16];
-            for (x, plane) in debug_voxel_data.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
+            for (_x, plane) in debug_voxel_data.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
                 for (y, row) in plane.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-                    for (z, voxel) in row.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
+                    for (_z, voxel) in row.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
                         let world_y = y as i32 + (pos.y * voxels::CHUNK_SIZE as i32);
 
                         *voxel = if world_y < 0 {
@@ -79,8 +78,7 @@ fn update_loaded_chunks(
                 }
             }
 
-            let new_chunk = voxels::spawn_chunk(pos, debug_voxel_data, chunk_material.0.clone(), &mut commands);
-            loaded.chunks.insert(pos, new_chunk);
+            voxels::spawn_chunk(pos, debug_voxel_data, chunk_material.0.clone(), &mut loaded, &mut commands);
         }
     }
 

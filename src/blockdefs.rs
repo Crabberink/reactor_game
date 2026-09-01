@@ -1,9 +1,9 @@
 use bevy::asset::io::Reader;
 use bevy::ecs::system::SystemParam;
+use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy::asset::{Asset, AssetLoader, LoadContext, LoadedFolder};
 use serde::Deserialize;
-use std::collections::HashMap;
 use thiserror::Error;
 use bevy::pbr::ExtendedMaterial;
 

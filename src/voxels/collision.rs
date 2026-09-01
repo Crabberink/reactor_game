@@ -15,7 +15,7 @@ impl Plugin for VoxelCollisionPlugin {
 #[component(storage = "SparseSet")]
 pub struct DirtyChunkCollider;
 
-fn generate_chunk_collider(
+pub fn generate_chunk_collider(
 	block_registry: Res<BlockRegistry>,
 	mut commands: Commands,
 	dirty_chunks: Query<(Entity, &Chunk), With<DirtyChunkCollider>>,

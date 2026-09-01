@@ -1,40 +1,26 @@
 pub mod collision;
 
 use avian3d::dynamics::rigid_body::RigidBody;
+use bevy::ecs::system::SystemParam;
+use bevy::platform::collections::HashMap;
 use bevy::render::render_resource::*;
 use bevy::shader::ShaderRef;
 use bevy::{asset::RenderAssetUsages, prelude::*};
 use bevy::mesh::*;
 use strum::IntoEnumIterator;
-use std::collections::HashMap;
 use strum_macros::EnumIter;
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 
 use crate::GameState;
 use crate::blockdefs::{BlockId, BlockRegistry};
-use crate::voxels::collision::VoxelCollisionPlugin;
-
-#[derive(Component)]
-pub struct Chunk {
-	pub coord: IVec3,
-	pub voxels: [[[BlockId; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
-}
-
-#[derive(Component)]
-#[component(storage = "SparseSet")]
-pub struct DirtyChunkMesh;
-
-//stop the unused warning for now, will be used later when we implement chunk loading and unloading
-#[allow(dead_code)]
-#[derive(Resource)]
-pub struct ChunkMap(HashMap<IVec3, Entity>);
+use crate::voxels::collision::{DirtyChunkCollider, VoxelCollisionPlugin};
 
 pub struct VoxelsPlugin;
 impl Plugin for VoxelsPlugin {
 	fn build(&self, app: &mut App) {
+		app.init_resource::<ChunkMap>();
 		app.add_plugins(MaterialPlugin::<VoxelMaterial>::default());
 		app.add_plugins(VoxelCollisionPlugin);
-		app.insert_resource(ChunkMap(HashMap::new()));
 		app.add_systems(Update, generate_chunk_mesh.run_if(in_state(GameState::Playing)));
 	}
 }
@@ -86,10 +72,71 @@ pub fn chunk_to_world(chunk_pos: ChunkPos) -> Vec3 {
 pub const CHUNK_SIZE: usize = 16;
 pub const VOXEL_SIZE: f32 = 1.0;
 
-pub fn spawn_chunk(chunk_pos: ChunkPos, voxel_data: [[[BlockId; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], material: Handle<VoxelMaterial>, commands: &mut Commands) -> Entity {
-    commands.spawn((
-        Chunk {
-            coord: chunk_pos,
+#[derive(Resource, Default)]
+pub struct ChunkMap {
+	pub chunks: HashMap<IVec3, Entity>,
+}
+
+#[derive(Component)]
+pub struct Chunk {
+	// FIX LATER I PROMISE THIS FIELD MIGHT BE USEFUL 
+	#[allow(dead_code)]
+	pub coord: ChunkPos,
+	pub voxels: [[[BlockId; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
+}
+
+impl Chunk {
+	fn get_voxel(&self, local_pos: LocalChunkPos) -> BlockId {
+		self.voxels[local_pos.x as usize][local_pos.y as usize][local_pos.z as usize]
+	}
+	fn set_voxel(&mut self, local_pos: LocalChunkPos, block_id: BlockId) {
+		self.voxels[local_pos.x as usize][local_pos.y as usize][local_pos.z as usize] = block_id
+	}
+}
+
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub struct DirtyChunkMesh;
+
+// YO there are genuine levels to this shit I barely know whats happening here
+#[derive(SystemParam)]
+#[allow(dead_code)]
+pub struct VoxelWorld<'w, 's> {
+	chunk_map: Res<'w, ChunkMap>,
+	chunks: Query<'w, 's, &'static mut Chunk>,
+	commands: Commands<'w, 's>
+}
+
+#[allow(dead_code)]
+impl<'w, 's> VoxelWorld<'w, 's> {
+	pub fn get_block(&self, block_pos: BlockPos) -> Option<BlockId> {
+		let chunk_pos = block_to_chunk(block_pos);
+		let chunk_local_pos = block_to_chunk_local(block_pos);
+
+		let chunk_entity = self.chunk_map.chunks.get(&chunk_pos)?;
+		let chunk = self.chunks.get(*chunk_entity).ok()?;
+
+		Some(chunk.get_voxel(chunk_local_pos))
+	}
+
+	pub fn set_block(&mut self, block_pos: BlockPos, block_id: BlockId) -> bool {
+		let chunk_pos = block_to_chunk(block_pos);
+		let chunk_local_pos = block_to_chunk_local(block_pos);
+
+		let Some(&chunk_entity) = self.chunk_map.chunks.get(&chunk_pos) else { return false; };
+		let Ok(mut chunk) = self.chunks.get_mut(chunk_entity) else { return false; };
+
+		chunk.set_voxel(chunk_local_pos, block_id);
+		self.commands.entity(chunk_entity).insert((DirtyChunkMesh, DirtyChunkCollider));
+
+		true
+	}
+}
+
+pub fn spawn_chunk(chunk_pos: ChunkPos, voxel_data: [[[BlockId; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], material: Handle<VoxelMaterial>, chunk_map: &mut ChunkMap, commands: &mut Commands) -> Entity {
+	let chunk_entity = commands.spawn((
+		Chunk {
+			coord: chunk_pos,
             voxels: voxel_data,
         },
         Mesh3d::default(),
@@ -98,14 +145,19 @@ pub fn spawn_chunk(chunk_pos: ChunkPos, voxel_data: [[[BlockId; CHUNK_SIZE]; CHU
         DirtyChunkMesh,
 		RigidBody::Static,
         collision::DirtyChunkCollider,
-    )).id()
+    )).id();
+
+	chunk_map.chunks.insert(chunk_pos, chunk_entity);
+
+	chunk_entity
 }
 
-fn generate_chunk_mesh(
+pub fn generate_chunk_mesh(
 	registry: Res<BlockRegistry>,
 	mut commands: Commands,
 	mut meshes: ResMut<Assets<Mesh>>,
-	dirty_chunks: Query<(Entity, &Chunk), With<DirtyChunkMesh>>
+	dirty_chunks: Query<(Entity, &Chunk), With<DirtyChunkMesh>>,
+	chunk_material: Res<ChunkMaterialRes>
 ) {
     for (entity, chunk) in dirty_chunks.iter() {
         let Some(new_mesh) = build_mesh(chunk, &registry) else {
@@ -115,6 +167,8 @@ fn generate_chunk_mesh(
 
 
 		commands.entity(entity).insert(Mesh3d(meshes.add(new_mesh)));
+		// fucking annoying ass bevy quirk (this component change is required for the rendering system to pick up the entity)
+		commands.entity(entity).insert( MeshMaterial3d(chunk_material.0.clone()));
 		commands.entity(entity).remove::<DirtyChunkMesh>();
     }
 }

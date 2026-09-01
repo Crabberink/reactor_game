@@ -21,7 +21,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins
                 .set(ImagePlugin::default_nearest()),
-            PhysicsPlugins::default()
+            PhysicsPlugins::default(),
         ))
         .insert_resource(RenderErrorHandler(
             |error, _main_world, _render_world| match error.ty {
@@ -36,7 +36,7 @@ fn main() {
         .add_plugins(PlayerPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, fps_system.run_if(in_state(GameState::Playing)))
+        // .add_systems(Update, fps_system.run_if(in_state(GameState::Playing)))
         .run();
 }
 
@@ -78,13 +78,5 @@ fn setup(
             ..default()
         },
         Transform::from_xyz(-4.0, 8.0, -4.0).looking_at(Vec3::ZERO, Vec3::Y),
-    ));
-
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(100.0, 1.0, 100.0))),
-        MeshMaterial3d(materials.add(Color::linear_rgb(1.0, 0.0, 0.0))),
-        Transform::from_xyz(0.0, -3.0, 0.0),
-        RigidBody::Static,
-        Collider::cuboid(100.0, 1.0, 100.0)
     ));
 }
