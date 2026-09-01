@@ -8,7 +8,7 @@ use bevy::{
     prelude::*,
 };
 use avian3d::prelude::*;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin};
 use voxels::VoxelsPlugin;
 use blockdefs::BlocksPlugin;
 
@@ -36,7 +36,6 @@ fn main() {
         .add_plugins(PlayerPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
-        // .add_systems(Update, fps_system.run_if(in_state(GameState::Playing)))
         .run();
 }
 
@@ -45,12 +44,6 @@ pub enum GameState {
     #[default]
     Loading,
     Playing
-}
-
-fn fps_system(diagnostics: Res<DiagnosticsStore>) {
-    if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) && let Some(value) = fps.smoothed() {
-        println!("{:.1} fps", value);
-    }
 }
 
 fn setup(

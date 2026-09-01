@@ -1,7 +1,7 @@
 use avian3d::{prelude::*};
 use bevy::{prelude::*, window::{CursorGrabMode, CursorOptions}};
 use leafwing_input_manager::prelude::*;
-use crate::{GameState, blockdefs::BlockRegistry, chunks::ChunkLoader, voxels::{self, VoxelWorld}};
+use crate::{GameState, blockdefs::BlockRegistry, chunks::ChunkLoader, block_id_palette, voxels::{self, VoxelWorld}};
 
 pub struct PlayerPlugin;
 
@@ -228,29 +228,22 @@ fn block_breaking(
 	player_heads: Query<(&RayCaster, &RayHits), With<PlayerCamera>>,
 	mut voxel_world: VoxelWorld,
 ) {
-	let Some(air_id) = block_registry.get_id("rg_air") else {
-		error!("Failed to get a block id!");
-		return;
-	};
+	block_id_palette!(block_registry, {
+		"rg_air" => air_id,
+	});
 
 	for (mut inputs, player_movement) in players.iter_mut() {
 
 		if !inputs.take_breaking() { continue; }
 
-		info!("Yo we breakin");
-
 		let Ok((ray_caster, ray_hits)) = player_heads.get(player_movement.head) else { continue; };
 		let Some(hit) = ray_hits.iter().next() else { continue; };
-
-		info!("AND we hittin");
 
 		let hit_position = (hit.distance + 0.01) * ray_caster.global_direction() + ray_caster.global_origin();
 
 		let block_positon = voxels::world_to_block(hit_position);
 
-		let broke = voxel_world.set_block(block_positon, air_id);
-
-		info!("We broke? {}", broke);
+		voxel_world.set_block(block_positon, air_id);
 	}
 }
 
@@ -263,28 +256,21 @@ fn block_placing(
 	player_heads: Query<(&RayCaster, &RayHits), With<PlayerCamera>>,
 	mut voxel_world: VoxelWorld,
 ) {
-	let Some(dirt_id) = block_registry.get_id("rg_dirt") else {
-		error!("Failed to get a block id!");
-		return;
-	};
+	block_id_palette!(block_registry, {
+		"rg_dirt" => dirt_id,
+	});
 
 	for (mut inputs, player_movement) in players.iter_mut() {
 
 		if !inputs.take_place() { continue; }
 
-		info!("Yo we placin");
-
 		let Ok((ray_caster, ray_hits)) = player_heads.get(player_movement.head) else { continue; };
 		let Some(hit) = ray_hits.iter().next() else { continue; };
-
-		info!("AND we hittin");
 
 		let hit_position = (hit.distance - 0.01) * ray_caster.global_direction() + ray_caster.global_origin();
 
 		let block_positon = voxels::world_to_block(hit_position);
 
-		let replaced = voxel_world.set_block(block_positon, dirt_id);
-
-		info!("We place? {}", replaced);
+		voxel_world.set_block(block_positon, dirt_id);
 	}
 }

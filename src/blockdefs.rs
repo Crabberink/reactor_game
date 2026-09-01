@@ -220,3 +220,15 @@ fn register_blocks(
 
 	info!("Material resource created!");
 }
+
+#[macro_export]
+macro_rules! block_id_palette {
+	( $registry:expr, { $($key:literal => $name:ident),* $(,)?}) => {
+		$(
+			let Some($name) = $registry.get_id($key) else {
+				error!("Failed to get a block id for key: '{}'!", $key);
+				return;
+			};
+		)*
+	};
+}

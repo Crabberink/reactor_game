@@ -1,7 +1,7 @@
 use bevy::{platform::collections::{HashSet}, prelude::*};
 use rand::RngExt;
 
-use crate::{GameState, voxels::{self, ChunkMap, ChunkMaterialRes, world_to_chunk}};
+use crate::{GameState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, ChunkMap, ChunkMaterialRes, world_to_chunk}};
 
 pub struct ChunksPlugin;
 
@@ -31,6 +31,7 @@ impl ChunkLoader {
 }
 
 fn update_loaded_chunks(
+    block_registry: Res<BlockRegistry>,
     chunk_material: Res<ChunkMaterialRes>,
     mut loaded: ResMut<ChunkMap>,
     mut loaders: Query<(&Transform, &mut ChunkLoader)>,
@@ -55,6 +56,12 @@ fn update_loaded_chunks(
         }
     }
 
+    block_id_palette!(block_registry, {
+		"rg_air" => air_id,
+        "rg_dirt" => dirt_id,
+        "rg_zart" => zart_id,
+	});
+
     for &pos in &desired {
         if !loaded.chunks.contains_key(&pos) {
             let mut rng = rand::rng();
@@ -67,12 +74,12 @@ fn update_loaded_chunks(
 
                         *voxel = if world_y < 0 {
                             if rng.random_bool(0.5) {
-                                2
+                                dirt_id
                             } else {
-                                3
+                                zart_id
                             }
                         } else { 
-                            1
+                            air_id
                         };
                     }
                 }
