@@ -59,7 +59,6 @@ fn update_loaded_chunks(
     block_id_palette!(block_registry, {
 		"rg_air" => air_id,
         "rg_dirt" => dirt_id,
-        "rg_zart" => zart_id,
 	});
 
     for &pos in &desired {
@@ -73,10 +72,10 @@ fn update_loaded_chunks(
                         let world_y = y as i32 + (pos.y * voxels::CHUNK_SIZE as i32);
 
                         *voxel = if world_y < 0 {
-                            if rng.random_bool(0.5) {
+                            if rng.random_bool(0.3) {
                                 dirt_id
                             } else {
-                                zart_id
+                                air_id
                             }
                         } else { 
                             air_id

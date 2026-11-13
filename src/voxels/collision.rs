@@ -22,7 +22,17 @@ pub fn generate_chunk_collider(
 ) {
 	for (entity, chunk) in dirty_chunks.iter() {
 		// This thing gonna be gone in a shit and a fart so who cares if we over allocate
-		let mut solid_voxels: Vec<IVector> = Vec::with_capacity(voxels::CHUNK_SIZE * voxels::CHUNK_SIZE * voxels::CHUNK_SIZE);
+
+		
+		let mut solid_voxels: Vec<IVector> = {
+			let _alloc_span = info_span!("allocate voxel array").entered();
+
+			Vec::with_capacity(voxels::CHUNK_SIZE * voxels::CHUNK_SIZE * voxels::CHUNK_SIZE)
+		};
+		
+		
+		{
+		let _pop_span = info_span!("populate voxel array").entered();
 
 		for x in 0..voxels::CHUNK_SIZE {
 			for y in 0..voxels::CHUNK_SIZE {
@@ -40,10 +50,13 @@ pub fn generate_chunk_collider(
 				}
 			}
 		}
+		}
 
+		
 		if solid_voxels.is_empty() {
 			commands.entity(entity).remove::<Collider>();
 		} else {
+			let _collider_span = info_span!("insert collider").entered();
 			commands.entity(entity).insert(Collider::voxels(Vec3::splat(voxels::VOXEL_SIZE), solid_voxels.as_slice()));
 		}
 
