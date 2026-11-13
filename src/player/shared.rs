@@ -11,13 +11,11 @@ use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::GameState;
 use crate::player::{PlayerAction, check_input, PlayerMovement, PlayerHead, LOOK_SENSITIVITY, PlayerBody};
-use crate::player::protocol::PlayerProtocolPlugin;
 
 pub struct SharedPlayerPlugin;
 impl Plugin for SharedPlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(PlayerProtocolPlugin);
-        app.add_systems(Update, debug_sync);
+        // app.add_systems(Update, debug_sync);
     }
 }
 

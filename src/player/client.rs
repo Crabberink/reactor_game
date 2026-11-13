@@ -10,9 +10,9 @@ use crate::player::shared::{apply_character_action, MoveSpeed, PlayerPhysicsBund
 pub struct ClientPlayerPlugin;
 impl Plugin for ClientPlayerPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(FixedUpdate, handle_player_actions);
         app.add_systems(Update, handle_new_player);
         app.add_observer(handle_controlled_player);
-        app.add_systems(FixedUpdate, handle_player_actions);
     }
 }
 

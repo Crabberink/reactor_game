@@ -18,7 +18,6 @@ impl Plugin for ServerPlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(handle_connected_player);
         app.add_systems(FixedUpdate, handle_player_actions);
-        app.add_systems(FixedPreUpdate, debug_player_physics);
         // app.add_systems(FixedUpdate, test_teleport_system.run_if(on_timer(Duration::from_secs(5))));
     }
 }
@@ -30,7 +29,7 @@ fn handle_connected_player(
     player_query: Query<Entity, With<PlayerBody>>,
     mut commands: Commands,
 ) {
-
+    info!("Triggered connected player");
     let Ok(remote_id) = client_query.get(trigger.entity) else {
         return;
     };
@@ -93,25 +92,6 @@ fn handle_player_actions(
 
         info!("Applying movement for action state {action_state:?}");
         apply_character_action(&time, &spatial_query, entity, forces, computed_mass, action_state, move_speed);
-    }
-}
-
-fn debug_player_physics(
-    query: Query<(
-        Entity,
-        &Position,
-        &LinearVelocity,
-        &RigidBody,
-    ), With<PlayerBody>>,
-) {
-    for (entity, position, velocity, rigid_body) in &query {
-        info!(
-            ?entity,
-            ?position,
-            ?velocity,
-            ?rigid_body,
-            "Authoritative player"
-        );
     }
 }
 
