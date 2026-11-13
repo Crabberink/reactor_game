@@ -1,14 +1,11 @@
-﻿use avian3d::PhysicsPlugins;
-use avian3d::prelude::*;
-use bevy::app::{App, Plugin, Startup};
-use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy::prelude::*;
-use bevy::render::error_handler::{ErrorType, RenderErrorHandler, RenderErrorPolicy};
-use lightyear::avian3d::plugin::{AvianReplicationMode, LightyearAvianPlugin};
-use crate::{GameState};
-use crate::network::protocol::ProtocolPlugin;
+﻿use crate::network::protocol::ProtocolPlugin;
 use crate::network::shared::SharedNetworkPlugin;
 use crate::player::shared::SharedPlayerPlugin;
+use avian3d::PhysicsPlugins;
+use avian3d::prelude::*;
+use bevy::app::{App, Plugin};
+use bevy::prelude::*;
+use lightyear::avian3d::plugin::{AvianReplicationMode, LightyearAvianPlugin};
 
 #[derive(Clone)]
 pub struct SharedPlugin;

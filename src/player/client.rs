@@ -1,19 +1,29 @@
-﻿use avian3d::prelude::{ComputedMass, Forces, Position, SpatialQuery};
+﻿use std::f32::consts::PI;
+use crate::player::shared::{MoveSpeed, PLAYER_HEIGHT, PLAYER_RADIUS, PlayerAction, PlayerPhysicsBundle, apply_character_action};
+use crate::player::{PlayerBody, PlayerHead, LOOK_SENSITIVITY};
+use avian3d::prelude::{ComputedMass, Forces, Position, SpatialQuery};
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::prelude::{GamepadStick, InputMap, MouseMove, VirtualDPad};
 use lightyear::prelude::*;
-use crate::player::{PlayerBody, PlayerAction};
-use crate::player::shared::{apply_character_action, MoveSpeed, PlayerPhysicsBundle, PLAYER_HEIGHT, PLAYER_RADIUS};
 
 pub struct ClientPlayerPlugin;
 impl Plugin for ClientPlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(FixedUpdate, handle_player_actions);
-        app.add_systems(Update, handle_new_player);
         app.add_observer(handle_controlled_player);
+
+        app.add_systems(Update, handle_new_player);
+        app.add_systems(FixedUpdate, handle_player_actions);
+        app.add_systems(Update, (apply_head_pitch, update_view_angles));
+        app.add_systems(FixedPreUpdate, write_look_axes);
     }
+}
+
+#[derive(Component)]
+struct ViewAngles {
+    pitch: f32,
+    yaw: f32,
 }
 
 /// Adds physics and mesh to newly created predicted players
@@ -29,9 +39,16 @@ fn handle_new_player(
         commands.entity(entity).insert(PlayerPhysicsBundle::default());
 
         if is_client {
-            info!("Adding camera to client player {entity:?}");
+            info!("Adding head to client player {entity:?}");
 
-            commands.entity(entity).insert(Camera3d::default());
+            commands.entity(entity).insert(ViewAngles { pitch: 0.0, yaw: 0.0 });
+            commands.spawn((
+                PlayerHead,
+                Camera3d::default(),
+                Transform::from_xyz(0.0, PLAYER_HEIGHT / 2.0, 0.0),
+                ChildOf(entity),
+            ));
+
             continue;
         }
 
@@ -77,17 +94,15 @@ fn handle_player_actions(
     spatial_query: SpatialQuery,
     // Excludes host-server client
     timeline: Res<LocalTimeline>,
-    mut player_query: Query<
-        (
-            Entity,
-            Forces,
-            &ComputedMass,
-            &ActionState<PlayerAction>,
-            &MoveSpeed,
-            Has<Predicted>
-        ),
-        Or<(With<Predicted>, With<DeterministicPredicted>)>
-    >,
+    mut player_query: Query<(
+        Entity,
+        Forces,
+        &ComputedMass,
+        &ActionState<PlayerAction>,
+        &MoveSpeed,
+        Has<Predicted>
+    ), Or<(With<Predicted>, With<DeterministicPredicted>)>>,
+    mut player_head_query: Query<&mut Transform, With<PlayerHead>>,
 ) {
     let tick = timeline.tick();
 
@@ -99,5 +114,35 @@ fn handle_player_actions(
         move_speed, predicted
     ) in player_query.iter_mut() {
         apply_character_action(&time, &spatial_query, entity, forces, computed_mass, action_state, move_speed);
+    }
+}
+
+fn apply_head_pitch(
+    players: Query<&ViewAngles>,
+    mut heads: Query<(&ChildOf, &mut Transform), With<PlayerHead>>,
+) {
+    for (child_of, mut tf) in &mut heads {
+        if let Ok(view_angles) = players.get(child_of.parent()) {
+            tf.rotation = Quat::from_rotation_x(view_angles.pitch);
+        }
+    }
+}
+
+fn update_view_angles(
+    mut query: Query<(&ActionState<PlayerAction>, &mut ViewAngles)>,
+) {
+    for (action_state, mut view_angles) in query.iter_mut() {
+        let delta = action_state.axis_pair(&PlayerAction::Look);
+
+        view_angles.yaw -= delta.x * LOOK_SENSITIVITY;
+        view_angles.pitch = (view_angles.pitch - delta.y * LOOK_SENSITIVITY).clamp(0.001 - PI / 2.0,PI / 2.0 - 0.001);
+    }
+}
+
+fn write_look_axes(
+    mut query: Query<(&mut ActionState<PlayerAction>, &ViewAngles)>,
+) {
+    for (mut action_state, view_angles) in query.iter_mut() {
+        action_state.set_axis_pair(&PlayerAction::LookAxes, Vec2::new(view_angles.yaw, view_angles.pitch));
     }
 }

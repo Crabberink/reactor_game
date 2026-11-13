@@ -1,4 +1,4 @@
-use bevy::{platform::collections::{HashSet}, prelude::*};
+use bevy::{platform::collections::HashSet, prelude::*};
 use rand::RngExt;
 
 use crate::{GameState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, ChunkMap, ChunkMaterialRes, world_to_chunk}};

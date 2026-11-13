@@ -1,14 +1,12 @@
-use std::{net::SocketAddr, time::Duration};
-use std::net::Ipv4Addr;
+use crate::network::shared::SharedSettings;
 use bevy::ecs::lifecycle::HookContext;
 use bevy::ecs::world::DeferredWorld;
 use bevy::prelude::*;
-use lightyear::{connection::client::{Connect}, link::Link, netcode::{Key, NetcodeClient, auth::Authentication, client_plugin::NetcodeConfig}, prelude::{LocalAddr, PeerAddr, ReplicationReceiver, UdpIo, client::ClientPlugins}};
-use lightyear::netcode::client::ClientConfig;
 use lightyear::prelude::*;
-// use lightyear::prelude::client::{ConnectTarget, SteamClientIo};
+use lightyear::{connection::client::Connect, link::Link, netcode::{NetcodeClient, auth::Authentication, client_plugin::NetcodeConfig}, prelude::{LocalAddr, PeerAddr, ReplicationReceiver, UdpIo}};
 use serde::{Deserialize, Serialize};
-use crate::network::shared::SharedSettings;
+use std::net::Ipv4Addr;
+use std::net::SocketAddr;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[non_exhaustive]

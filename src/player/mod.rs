@@ -3,12 +3,12 @@ pub mod shared;
 pub mod server;
 pub mod protocol;
 
-use avian3d::{prelude::*};
+use crate::{block_id_palette, blockdefs::BlockRegistry, voxels::{self, VoxelWorld}};
+use avian3d::prelude::*;
 use bevy::{prelude::*, window::{CursorGrabMode, CursorOptions}};
 use leafwing_input_manager::prelude::*;
-use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::{GameState, blockdefs::BlockRegistry, chunks::ChunkLoader, block_id_palette, voxels::{self, VoxelWorld}};
+use shared::PlayerAction;
 
 #[derive(Component, Serialize, Deserialize)]
 pub struct PlayerMovement {
@@ -21,17 +21,6 @@ pub struct PlayerHead;
 
 #[derive(Component, Serialize, Deserialize)]
 pub struct PlayerBody;
-
-#[derive(Actionlike, Reflect, Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize, Copy)]
-enum PlayerAction {
-	#[actionlike(DualAxis)]
-	Move,
-	#[actionlike(DualAxis)]
-	Look,
-	Jump,
-	Break,
-	Place,
-}
 
 const LOOK_SENSITIVITY: f32 = 0.005;
 

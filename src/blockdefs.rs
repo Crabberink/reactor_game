@@ -1,11 +1,11 @@
 use bevy::asset::io::Reader;
+use bevy::asset::{Asset, AssetLoader, LoadContext, LoadedFolder};
 use bevy::ecs::system::SystemParam;
+use bevy::pbr::ExtendedMaterial;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use bevy::asset::{Asset, AssetLoader, LoadContext, LoadedFolder};
 use serde::Deserialize;
 use thiserror::Error;
-use bevy::pbr::ExtendedMaterial;
 
 use crate::GameState;
 use crate::voxels::{ChunkMaterialRes, VoxelMaterial, VoxelMaterialExtension};

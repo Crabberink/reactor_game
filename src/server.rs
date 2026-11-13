@@ -1,8 +1,8 @@
-﻿use bevy::app::{App, Plugin};
-use lightyear::prelude::ReplicationMetadata;
-use crate::network::server::ServerNetworkPlugin;
+﻿use crate::network::server::ServerNetworkPlugin;
 use crate::network::shared::SEND_INTERVAL;
 use crate::player::server::ServerPlayerPlugin;
+use bevy::app::{App, Plugin};
+use lightyear::prelude::ReplicationMetadata;
 
 pub struct ServerPlugin;
 

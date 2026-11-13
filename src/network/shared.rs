@@ -1,7 +1,6 @@
-﻿use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+﻿use bevy::prelude::*;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;
-use bevy::prelude::*;
-use crate::network::protocol::ProtocolPlugin;
 
 pub struct SharedNetworkPlugin;
 impl Plugin for SharedNetworkPlugin {

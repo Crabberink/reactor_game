@@ -1,10 +1,10 @@
-﻿use bevy::app::{App, Plugin};
+﻿use crate::player::shared::{MoveSpeed, PlayerAction};
+use crate::player::{PlayerBody, PlayerHead};
+use bevy::app::{App, Plugin};
 use bevy::utils::default;
 use lightyear::input::prelude::InputConfig;
 use lightyear::prelude::AppComponentExt;
 use lightyear::prelude::input::leafwing;
-use crate::player::{PlayerAction, PlayerBody, PlayerHead};
-use crate::player::shared::MoveSpeed;
 
 pub struct PlayerProtocolPlugin;
 

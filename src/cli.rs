@@ -1,16 +1,16 @@
-use std::time::Duration;
+use crate::network::client::{ClientTransports, GameClient};
+use crate::network::server::{GameServer, ServerTransports};
+use crate::network::shared::{CLIENT_PORT, SERVER_ADDR, SERVER_PORT, SHARED_SETTINGS};
 use bevy::diagnostic::DiagnosticsPlugin;
 use bevy::log::{Level, LogPlugin};
 use bevy::mesh::MeshPlugin;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
-use lightyear::prelude::*;
 use bevy::window::PresentMode;
 use bevy::winit::WinitSettings;
-use clap::{Parser, Subcommand, ValueEnum};
-use crate::network::client::{ClientTransports, GameClient};
-use crate::network::server::{GameServer, ServerTransports};
-use crate::network::shared::{SharedSettings, CLIENT_PORT, FIXED_TIMESTEP_HZ, SERVER_ADDR, SHARED_SETTINGS, SERVER_PORT};
+use clap::{Parser, Subcommand};
+use lightyear::prelude::*;
+use std::time::Duration;
 
 #[derive(Parser, Debug)]
 pub struct Cli {
@@ -31,7 +31,7 @@ impl Cli {
         matches!(self.mode.as_ref(), Some(Mode::Server))
     }
 
-    pub fn create_app(add_inspector: bool, mode: Option<&Mode>, headless: bool) -> App {
+    pub fn create_app(add_inspector: bool, _mode: Option<&Mode>, headless: bool) -> App {
         if !headless { return new_gui_app(add_inspector); }
 
         // let loop_wait = match mode {
@@ -71,9 +71,6 @@ impl Cli {
                     "Mode is required. Possible options: {}",
                     "Initiating protocol: Fuck You. I am not implementing this shit, figure it out",
                 );
-            },
-            _ => {
-                panic!("????");
             }
         }
     }
@@ -115,7 +112,7 @@ impl Cli {
                         shared_settings: SHARED_SETTINGS,
                     }).id();
 
-                let client = app.
+                let _client = app.
                     world_mut()
                     .spawn((Client, Name::new("HostClient"), LinkOf { endpoint: server }))
                     .id();

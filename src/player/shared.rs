@@ -1,27 +1,23 @@
-﻿use std::cmp::Ordering;
-use std::time::Duration;
-use avian3d::prelude::*;
+﻿use crate::player::PlayerBody;
 use avian3d::prelude::forces::ForcesItem;
-use bevy::app::{App, FixedUpdate, Plugin, Update};
+use avian3d::prelude::*;
+use bevy::app::{App, Plugin};
 use bevy::prelude::*;
-use bevy::time::common_conditions::on_timer;
-use leafwing_input_manager::plugin::InputManagerPlugin;
+use leafwing_input_manager::Actionlike;
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::GameState;
-use crate::player::{PlayerAction, check_input, PlayerMovement, PlayerHead, LOOK_SENSITIVITY, PlayerBody};
 
 pub struct SharedPlayerPlugin;
 impl Plugin for SharedPlayerPlugin {
     fn build(&self, app: &mut App) {
         // app.add_systems(Update, debug_sync);
+        app.add_systems(FixedUpdate, apply_yaw);
     }
 }
 
 pub const PLAYER_HEIGHT: f32 = 1.8;
 pub const PLAYER_RADIUS: f32 = 0.4;
-pub const GROUNDED_CHECK_RADIUS : f32 = 0.4;
+pub const GROUNDED_CHECK_RADIUS: f32 = 0.4;
 
 #[derive(Bundle)]
 pub struct PlayerPhysicsBundle {
@@ -131,6 +127,13 @@ pub fn apply_character_action(
     forces.apply_force(accel * computed_mass.value());
 }
 
+fn apply_yaw(mut query: Query<(&ActionState<PlayerAction>, &mut Rotation)>) {
+    for (actions, mut rotation) in query.iter_mut() {
+        let look = actions.axis_pair(&PlayerAction::LookAxes);
+        rotation.0 = Quat::from_rotation_y(look.x);
+    }
+}
+
 fn debug_sync(q: Query<(Entity, &Position, &LinearVelocity), With<PlayerBody>>) {
     let mut rows: Vec<_> = q.iter().collect();
     rows.sort_by_key(|(entity, _, _)| *entity);
@@ -141,4 +144,17 @@ fn debug_sync(q: Query<(Entity, &Position, &LinearVelocity), With<PlayerBody>>) 
         .collect();
 
     info!("PlayerBody state:\n{}", lines.join("\n"));
+}
+
+#[derive(Actionlike, Reflect, Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize, Copy)]
+pub enum PlayerAction {
+	#[actionlike(DualAxis)]
+	Move,
+	#[actionlike(DualAxis)]
+	Look,
+	#[actionlike(DualAxis)]
+	LookAxes,
+	Jump,
+	Break,
+	Place,
 }

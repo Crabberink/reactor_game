@@ -8,14 +8,14 @@ mod shared;
 mod client;
 mod server;
 
-use std::time::Duration;
-use bevy::prelude::*;
 use avian3d::prelude::*;
+use bevy::prelude::*;
 use clap::{Parser, ValueEnum};
+use std::time::Duration;
 
-use crate::network::shared::{FIXED_TIMESTEP_HZ};
 use crate::cli::*;
 use crate::client::ClientPlugin;
+use crate::network::shared::FIXED_TIMESTEP_HZ;
 use crate::server::ServerPlugin;
 use crate::shared::SharedPlugin;
 

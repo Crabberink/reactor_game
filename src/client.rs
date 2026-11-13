@@ -1,13 +1,12 @@
-﻿use avian3d::parry::glamx::Vec3;
+﻿use crate::player::client::ClientPlayerPlugin;
+use avian3d::parry::glamx::Vec3;
 use bevy::app::{App, Plugin, Startup};
 use bevy::asset::Assets;
-use bevy::camera::Camera3d;
 use bevy::color::Color;
 use bevy::light::{DirectionalLight, PointLight};
 use bevy::mesh::{Mesh, Mesh3d};
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
-use bevy::prelude::{default, Commands, Transform, ResMut, Capsule3d};
-use crate::player::client::ClientPlayerPlugin;
+use bevy::prelude::{Capsule3d, Commands, ResMut, Transform, default};
 
 pub struct ClientPlugin;
 

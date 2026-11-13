@@ -2,14 +2,14 @@ pub mod collision;
 
 use avian3d::dynamics::rigid_body::RigidBody;
 use bevy::ecs::system::SystemParam;
+use bevy::mesh::*;
+use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::platform::collections::HashMap;
 use bevy::render::render_resource::*;
 use bevy::shader::ShaderRef;
 use bevy::{asset::RenderAssetUsages, prelude::*};
-use bevy::mesh::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 
 use crate::GameState;
 use crate::blockdefs::{BlockId, BlockRegistry};
