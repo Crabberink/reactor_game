@@ -9,6 +9,7 @@ bevy = { version = "0.20.1", features = ["dynamic_linking", "debug"] }
 bevy-inspector-egui = "0.38.0"
 bevy_common_assets = { version = "0.18.0", features = ["ron"] }
 bevy_dylib = "0.20.1"
+bevy_replicon = "0.45.5"
 clap = { version = "4.6.7", features = ["cargo", "derive"] }
 leafwing-input-manager = "0.22.0"
 lightyear = { version = "0.31.0", features = ["avian3d", "leafwing", "netcode", "udp"] }

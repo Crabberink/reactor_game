@@ -1,14 +1,16 @@
+use std::error::Error;
 use bevy::asset::io::Reader;
 use bevy::asset::{Asset, AssetLoader, LoadContext, LoadedFolder};
 use bevy::ecs::system::SystemParam;
 use bevy::pbr::ExtendedMaterial;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
+use bevy_inspector_egui::egui::load::LoadError;
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::GameState;
-use crate::voxels::{ChunkMaterialRes, VoxelMaterial, VoxelMaterialExtension};
+use crate::LoadingState;
+use crate::voxels::client::{ChunkMaterialRes, VoxelMaterial, VoxelMaterialExtension};
 
 pub struct BlocksPlugin;
 impl Plugin for BlocksPlugin {
@@ -19,7 +21,7 @@ impl Plugin for BlocksPlugin {
 			.init_asset::<BlockDefinition>()
 			.init_asset_loader::<BlockDefinitionAssetLoader>()
 			.add_systems(Startup, load_blocks)
-			.add_systems(Update, register_blocks.run_if(in_state(GameState::Loading)));
+			.add_systems(Update, register_blocks.run_if(in_state(LoadingState::Loading)));
 	}
 }
 
@@ -128,8 +130,6 @@ struct BlockAssets {
 	textures_folder: Handle<LoadedFolder>,
 }
 
-
-
 fn load_blocks(mut state: ResMut<BlockAssets>, asset_server: Res<AssetServer>) {
 	state.defs_folder = asset_server.load_folder("blocks");
 	state.textures_folder = asset_server.load_folder("textures");
@@ -163,27 +163,47 @@ struct BlockRegisterParams<'w> {
 	loaded_folders: Res<'w, Assets<LoadedFolder>>,
 	block_definitions: Res<'w, Assets<BlockDefinition>>,
 	asset_server: Res<'w, AssetServer>,
-	images: ResMut<'w, Assets<Image>>,
-	materials: ResMut<'w, Assets<VoxelMaterial>>,
+	images: Option<ResMut<'w, Assets<Image>>>,
+	materials: Option<ResMut<'w, Assets<VoxelMaterial>>>,
 }
 
 fn register_blocks(
 	mut params: BlockRegisterParams,
 	mut commands: Commands,
-	mut next_state: ResMut<NextState<GameState>>,
+	mut next_state: ResMut<NextState<LoadingState>>,
 	mut registry: ResMut<BlockRegistry>
 ) {
-	let Some(texture_folder) = params.loaded_folders.get(&params.block_assets.textures_folder) else {
+	let Some(blocks_folder) = params.loaded_folders.get(&params.block_assets.defs_folder) else {
+		info_once!("register_blocks: waiting for the DEFS folder");
 		return;
 	};
 
-	let Some(blocks_folder) = params.loaded_folders.get(&params.block_assets.defs_folder) else {
+	let Some(mut images) = params.images else {
+		next_state.set(LoadingState::Loaded);
+		info!("Skipping loading block atlas and materials");
+
+		for handle in &blocks_folder.handles {
+			let typed_handle = handle.id().typed::<BlockDefinition>();
+			let Some(def) = params.block_definitions.get(typed_handle) else {
+				continue;
+			};
+			
+			registry.register(def.clone());
+		}
+
 		return;
 	};
+
+	let Some(texture_folder) = params.loaded_folders.get(&params.block_assets.textures_folder) else {
+		info_once!("register_blocks: waiting for the TEX folder");
+		return;
+	};
+
+	info!("loading block atlas");
+
+	next_state.set(LoadingState::Loaded);
 	
-	next_state.set(GameState::Playing);
-	
-	let (layout, sources, atlas) = build_block_atlas(texture_folder, &mut params.images);
+	let (layout, sources, atlas) = build_block_atlas(texture_folder, &mut images);
 
 	for handle in &blocks_folder.handles {
 		let typed_handle = handle.id().typed::<BlockDefinition>();
@@ -209,7 +229,8 @@ fn register_blocks(
 
 	info!("Blockdefs have been registered!");
 
-	let material_handle = params.materials.add(
+	let Some(mut materials) = params.materials else { return; };
+	let material_handle = materials.add(
 		ExtendedMaterial {
 			base: StandardMaterial::default(),
 			extension: VoxelMaterialExtension { atlas },
@@ -226,7 +247,7 @@ macro_rules! block_id_palette {
 	( $registry:expr, { $($key:literal => $name:ident),* $(,)?}) => {
 		$(
 			let Some($name) = $registry.get_id($key) else {
-				error!("Failed to get a block id for key: '{}'!", $key);
+				bevy::log::error!("Failed to get a block id for key: '{}'!", $key);
 				return;
 			};
 		)*

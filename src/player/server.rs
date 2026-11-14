@@ -1,21 +1,25 @@
 ﻿use crate::chunks::ChunkLoader;
-use crate::player::shared::{MoveSpeed, PlayerAction, PlayerPhysicsBundle, apply_character_action};
+use crate::player::shared::{apply_character_action, MoveSpeed, PlayerAction, PlayerPhysicsBundle, PLAYER_HEIGHT};
 use crate::player::PlayerBody;
 use avian3d::prelude::*;
 use bevy::app::{App, Plugin};
+use bevy::ecs::entity::EntityHashSet;
 use bevy::log::info;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::connection::client_of::ClientOf;
 use lightyear::connection::host::HostServer;
 use lightyear::prelude::*;
+use crate::block_id_palette;
+use crate::blockdefs::BlockRegistry;
+use crate::voxels::{world_to_block, VoxelWorld};
+use crate::voxels::protocol::Chunk;
 
 pub struct ServerPlayerPlugin;
 impl Plugin for ServerPlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(handle_connected_player);
         app.add_systems(FixedUpdate, handle_player_actions);
-        // app.add_systems(FixedUpdate, test_teleport_system.run_if(on_timer(Duration::from_secs(5))));
     }
 }
 
@@ -26,7 +30,6 @@ fn handle_connected_player(
     player_query: Query<Entity, With<PlayerBody>>,
     mut commands: Commands,
 ) {
-    info!("Triggered connected player");
     let Ok(remote_id) = client_query.get(trigger.entity) else {
         return;
     };
@@ -40,17 +43,11 @@ fn handle_connected_player(
 
     let spawn_pos = Vec3::new((num_players * 3) as f32, 0.0, 0.0);
 
-    // let head = commands.spawn((
-    //     PlayerHead,
-    //     Transform::from_xyz(0.0, (PLAYER_HEIGHT / 2.0) - 0.1, 0.0),
-    // )).id();
-    // commands.entity(head).insert(ChildOf(player));
-
     commands.spawn((
         Name::new("Player"),
         Position(spawn_pos),
         PlayerBody,
-        ChunkLoader::of_range(5),
+        ChunkLoader::of_range(1),
         MoveSpeed { speed: 5.0, max_acceleration: 20.0 },
         PlayerPhysicsBundle::default(),
         ActionState::<PlayerAction>::default(),
@@ -71,8 +68,10 @@ fn handle_connected_player(
 
 fn handle_player_actions(
     time: Res<Time>,
+    block_registry: Res<BlockRegistry>,
     spatial_query: SpatialQuery,
     host_server: Query<(), With<HostServer>>,
+    chunks: Query<Entity, (With<Chunk>, Without<MoveSpeed>)>,
     mut player_query: Query<(
         Entity,
         Forces,
@@ -81,23 +80,50 @@ fn handle_player_actions(
         &MoveSpeed,
         Has<Predicted>
     )>,
+    mut voxel_world: VoxelWorld,
 ) {
+    block_id_palette!(block_registry, {
+		"rg_air" => air_id,
+        "rg_zart" => zart_id,
+	});
+
     let is_host_server = !host_server.is_empty();
 
     for (entity, forces, computed_mass, action_state, move_speed, predicted) in player_query.iter_mut() {
-        if is_host_server && predicted { info!("Skipping host server movement"); continue; }
+        if is_host_server && predicted { continue; }
 
-        info!("Applying movement for action state {action_state:?}");
+        // gotta grab this shit for later
+        let origin = forces.position() + Vec3::Y * (PLAYER_HEIGHT / 2.0);
+
         apply_character_action(&time, &spatial_query, entity, forces, computed_mass, action_state, move_speed);
-    }
-}
 
-fn test_teleport_system(
-    mut query: Query<&mut Position, With<PlayerBody>>,
-) {
-    info!("Running teleport");
+        let look_axes = action_state.axis_pair(&PlayerAction::LookAxes);
+        let look_quat = Quat::from_euler(EulerRot::YXZ, look_axes.x, look_axes.y, 0.0);
+        let look_dir = look_quat * Dir3::NEG_Z;
 
-    for mut position in query.iter_mut() {
-        position.x += 10.0;
+
+        let Some(ray_hit_data) = spatial_query.cast_ray(
+            origin,
+            look_dir,
+            5.0
+            , true,
+            &SpatialQueryFilter::default().with_excluded_entities([entity])
+        ) else { continue; };
+
+        if !chunks.contains(ray_hit_data.entity) { continue; }
+
+        if action_state.just_pressed(&PlayerAction::Break) {
+            let hit_position = origin + (ray_hit_data.distance + 0.01) * look_dir;
+            let block_position = world_to_block(hit_position);
+
+        voxel_world.set_block(block_position, air_id);
+        }
+
+        if action_state.just_pressed(&PlayerAction::Place) {
+            let hit_position = origin + (ray_hit_data.distance - 0.01) * look_dir;
+            let block_position = world_to_block(hit_position);
+
+            voxel_world.set_block(block_position, zart_id);
+        }
     }
 }

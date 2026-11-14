@@ -4,9 +4,11 @@ use crate::player::{PlayerBody, PlayerHead, LOOK_SENSITIVITY};
 use avian3d::prelude::{ComputedMass, Forces, Position, SpatialQuery};
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
+use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::prelude::{GamepadStick, InputMap, MouseMove, VirtualDPad};
 use lightyear::prelude::*;
+use crate::LoadingState;
 
 pub struct ClientPlayerPlugin;
 impl Plugin for ClientPlayerPlugin {
@@ -17,6 +19,7 @@ impl Plugin for ClientPlayerPlugin {
         app.add_systems(FixedUpdate, handle_player_actions);
         app.add_systems(Update, (apply_head_pitch, update_view_angles));
         app.add_systems(FixedPreUpdate, write_look_axes);
+        app.add_systems(OnEnter(LoadingState::Loaded), lock_mouse);
     }
 }
 
@@ -145,4 +148,10 @@ fn write_look_axes(
     for (mut action_state, view_angles) in query.iter_mut() {
         action_state.set_axis_pair(&PlayerAction::LookAxes, Vec2::new(view_angles.yaw, view_angles.pitch));
     }
+}
+
+fn lock_mouse(
+    mut cursor_options: Single<&mut CursorOptions>,
+) {
+    cursor_options.grab_mode = CursorGrabMode::Locked;
 }

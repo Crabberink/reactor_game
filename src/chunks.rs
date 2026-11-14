@@ -1,18 +1,21 @@
+use avian3d::prelude::Position;
 use bevy::{platform::collections::HashSet, prelude::*};
 use rand::RngExt;
 
-use crate::{GameState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, ChunkMap, ChunkMaterialRes, world_to_chunk}};
+use crate::{LoadingState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, world_to_chunk}};
+use crate::voxels::server::spawn_chunk;
+use crate::voxels::shared::ChunkMap;
 
-pub struct ChunksPlugin;
+pub struct ServerChunksPlugin;
 
-impl Plugin for ChunksPlugin {
+impl Plugin for ServerChunksPlugin {
 	fn build(&self, app: &mut App) {
         app
             .add_systems(Update, 
                 update_loaded_chunks
-                    .before(voxels::generate_chunk_mesh)
-                    .before(voxels::collision::generate_chunk_collider)
-                    .run_if(in_state(GameState::Playing)
+                    .before(voxels::client::generate_chunk_mesh)
+                    .before(voxels::collision::shared::generate_chunk_collider)
+                    .run_if(in_state(LoadingState::Loaded)
             ));
 		// app.add_systems(OnEnter(GameState::Playing), spawn_chunks);
 	}
@@ -32,15 +35,14 @@ impl ChunkLoader {
 
 fn update_loaded_chunks(
     block_registry: Res<BlockRegistry>,
-    chunk_material: Res<ChunkMaterialRes>,
     mut loaded: ResMut<ChunkMap>,
-    mut loaders: Query<(&Transform, &mut ChunkLoader)>,
+    mut loaders: Query<(&Position, &mut ChunkLoader)>,
     mut commands: Commands,
 ) {
     let mut desired: HashSet<IVec3> = HashSet::new();
 
-    for (transform, mut loader) in loaders.iter_mut() {
-        let current_chunk = world_to_chunk(transform.translation);
+    for (position, mut loader) in loaders.iter_mut() {
+        let current_chunk = world_to_chunk(position.0);
 
         // if loader.last_chunk_pos == Some(current_chunk) {
         //     continue;
@@ -84,7 +86,7 @@ fn update_loaded_chunks(
                 }
             }
 
-            voxels::spawn_chunk(pos, debug_voxel_data, chunk_material.0.clone(), &mut loaded, &mut commands);
+            spawn_chunk(pos, debug_voxel_data, &mut commands);
         }
     }
 

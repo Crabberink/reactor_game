@@ -48,10 +48,10 @@ fn main() {
 }
 
 #[derive(States, Default, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum GameState {
+pub enum LoadingState {
     #[default]
     Loading,
-    Playing
+    Loaded
 }
 
 fn add_input_delay(app: &mut App) {

@@ -1,4 +1,4 @@
-﻿use crate::player::PlayerBody;
+﻿use crate::player::{Inputs, PlayerBody, PlayerHead, PlayerMovement};
 use avian3d::prelude::forces::ForcesItem;
 use avian3d::prelude::*;
 use bevy::app::{App, Plugin};
@@ -6,11 +6,13 @@ use bevy::prelude::*;
 use leafwing_input_manager::Actionlike;
 use leafwing_input_manager::prelude::ActionState;
 use serde::{Deserialize, Serialize};
+use crate::{block_id_palette, voxels};
+use crate::blockdefs::BlockRegistry;
+use crate::voxels::VoxelWorld;
 
 pub struct SharedPlayerPlugin;
 impl Plugin for SharedPlayerPlugin {
     fn build(&self, app: &mut App) {
-        // app.add_systems(Update, debug_sync);
         app.add_systems(FixedUpdate, apply_yaw);
     }
 }
@@ -25,7 +27,6 @@ pub struct PlayerPhysicsBundle {
     collider: Collider,
     locked_axes: LockedAxes,
     friction: Friction,
-    gravity_scale: GravityScale,
 }
 
 impl Default for PlayerPhysicsBundle {
@@ -38,19 +39,9 @@ impl Default for PlayerPhysicsBundle {
                 .lock_rotation_y()
                 .lock_rotation_z(),
             friction: Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
-            gravity_scale: GravityScale(0.0),
         }
     }
 }
-
-
-// Yo I PROMISE the magic numbers are better this way constants are for LOSERS (ignoring the existing constants)
-// ShapeCaster::new(
-// 	Collider::cylinder(GROUNDED_CHECK_RADIUS, 0.1),
-// 	Vec3::new(0.0, (-PLAYER_HEIGHT / 2.0) + 0.05, 0.0),
-// 	Quat::IDENTITY,
-// 	Dir3::Y,
-// ).with_max_distance(0.1).with_ignore_self(true),
 
 #[derive(Component, Serialize, Deserialize)]
 pub struct MoveSpeed {
@@ -86,7 +77,7 @@ pub fn apply_character_action(
             ).is_some()
         {
             forces.apply_linear_impulse(Vec3::new(0.0,5.0,0.0));
-        }
+        } else { info!("Fuck you you aint jumpin dumnbass"); }
     }
 
     // Normalized input
@@ -111,18 +102,6 @@ pub fn apply_character_action(
     // How much acceleration to get myself from my stored velocity to what my velocity for this tick should be
     let accel = (new_ground_vel - ground_vel) / time.delta_secs();
 
-    // info!(
-    //     ?move_axis,
-    //     ?player_rotation,
-    //     ?target_vel,
-    //     ?ground_vel,
-    //     ?new_ground_vel,
-    //     ?accel,
-    //     delta = time.delta_secs(),
-    //     mass = computed_mass.value(),
-    //     "Movement calculation"
-    // );
-
     // Thank you Mr. Eckel
     forces.apply_force(accel * computed_mass.value());
 }
@@ -134,16 +113,35 @@ fn apply_yaw(mut query: Query<(&ActionState<PlayerAction>, &mut Rotation)>) {
     }
 }
 
-fn debug_sync(q: Query<(Entity, &Position, &LinearVelocity), With<PlayerBody>>) {
-    let mut rows: Vec<_> = q.iter().collect();
-    rows.sort_by_key(|(entity, _, _)| *entity);
+fn apply_block_breaking() {
 
-    let lines: Vec<String> = rows
-        .iter()
-        .map(|(e, pos, vel)| format!("{e:?} pos={:.3?} vel={:.3?}", pos.0, vel.0))
-        .collect();
+    fn block_breaking(
+        block_registry: Res<BlockRegistry>,
+        mut players: Query<(
+            &mut Inputs,
+            &PlayerMovement,
+        ), Without<PlayerHead>>,
+        player_heads: Query<(&RayCaster, &RayHits), With<PlayerHead>>,
+        mut voxel_world: VoxelWorld,
+    ) {
+        block_id_palette!(block_registry, {
+		"rg_air" => air_id,
+	});
 
-    info!("PlayerBody state:\n{}", lines.join("\n"));
+        for (mut inputs, player_movement) in players.iter_mut() {
+
+            if !inputs.take_breaking() { continue; }
+
+            let Ok((ray_caster, ray_hits)) = player_heads.get(player_movement.head) else { continue; };
+            let Some(hit) = ray_hits.iter().next() else { continue; };
+
+            let hit_position = (hit.distance + 0.01) * ray_caster.global_direction() + ray_caster.global_origin();
+
+            let block_positon = voxels::world_to_block(hit_position);
+
+            voxel_world.set_block(block_positon, air_id);
+        }
+    }
 }
 
 #[derive(Actionlike, Reflect, Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize, Copy)]

@@ -7,6 +7,7 @@ use bevy::light::{DirectionalLight, PointLight};
 use bevy::mesh::{Mesh, Mesh3d};
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::prelude::{Capsule3d, Commands, ResMut, Transform, default};
+use crate::voxels::client::ClientVoxelsPlugin;
 
 pub struct ClientPlugin;
 
@@ -15,6 +16,7 @@ impl Plugin for ClientPlugin {
         app.add_systems(Startup, setup);
 
         app.add_plugins(ClientPlayerPlugin);
+        app.add_plugins(ClientVoxelsPlugin);
     }
 }
 

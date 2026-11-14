@@ -2008,9 +2008,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_replicon"
-version = "0.45.4"
+version = "0.45.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ad9709c525841e22ec3c4010c03e4a4c5f610628e3f3a3ee5bcd905b38ad9bc"
+checksum = "03aac70b1eb265694a64dcb49c4f105f700366b9f49a6abc4442677a0d9c4576"
 dependencies = [
  "bevy",
  "bitflags 2.13.2",
@@ -7421,6 +7421,7 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_common_assets",
  "bevy_dylib",
+ "bevy_replicon",
  "clap",
  "leafwing-input-manager",
  "lightyear",

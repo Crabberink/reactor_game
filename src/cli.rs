@@ -11,6 +11,7 @@ use bevy::winit::WinitSettings;
 use clap::{Parser, Subcommand};
 use lightyear::prelude::*;
 use std::time::Duration;
+use crate::LoadingState;
 
 #[derive(Parser, Debug)]
 pub struct Cli {
@@ -76,7 +77,8 @@ impl Cli {
     }
 
     pub fn spawn_connections(&self, app: &mut App) {
-        let conditioner = Some(LinkConditionerConfig::average_condition().half());
+        // let conditioner = Some(LinkConditionerConfig::average_condition().half());
+        let conditioner = None;
         
         match self.mode {
             Some(Mode::Client { client_id }) => {
@@ -90,7 +92,7 @@ impl Cli {
                         transport: ClientTransports::Udp,
                         shared_settings: SHARED_SETTINGS,
                     }).id();
-                app.add_systems(Startup, crate::network::client::connect);
+                app.add_systems(OnEnter(LoadingState::Loaded), crate::network::client::connect);
             },
             Some(Mode::Server) => {
                 let _server = app
@@ -101,7 +103,7 @@ impl Cli {
                         shared_settings: SHARED_SETTINGS,
                     }).id();
 
-                app.add_systems(Startup, crate::network::server::start);
+                app.add_systems(OnEnter(LoadingState::Loaded), crate::network::server::start);
             },
             Some(Mode::HostClient { client_id }) => {
                 let server = app
@@ -117,7 +119,7 @@ impl Cli {
                     .spawn((Client, Name::new("HostClient"), LinkOf { endpoint: server }))
                     .id();
 
-                app.add_systems(Startup, (
+                app.add_systems(OnEnter(LoadingState::Loaded), (
                     crate::network::server::start,
                     crate::network::client::connect
                 ).chain());
@@ -180,7 +182,8 @@ pub fn new_gui_app(add_inspector: bool) -> App {
                 ..default()
             })
             .set(log_plugin())
-            .set(window_plugin()),
+            .set(window_plugin())
+            .set(ImagePlugin::default_nearest()),
     );
     // we want the same frequency of updates for both focused and unfocused
     // Otherwise when testing the movement can look choppy for unfocused windows
@@ -207,7 +210,7 @@ pub fn new_headless_app(loop_wait: Option<Duration>) -> App {
         StatesPlugin,
         DiagnosticsPlugin,
         AssetPlugin::default(),
-        MeshPlugin
+        MeshPlugin,
     ));
     app
 }

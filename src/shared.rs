@@ -6,6 +6,9 @@ use avian3d::prelude::*;
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
 use lightyear::avian3d::plugin::{AvianReplicationMode, LightyearAvianPlugin};
+use crate::blockdefs::BlocksPlugin;
+use crate::LoadingState;
+use crate::voxels::shared::SharedVoxelsPlugin;
 
 #[derive(Clone)]
 pub struct SharedPlugin;
@@ -32,11 +35,11 @@ impl Plugin for SharedPlugin {
                 .disable::<IslandSleepingPlugin>(),
         );
 
-        // app.init_state::<GameState>();
+        app.init_state::<LoadingState>();
 
-        // app
-            // .add_plugins(BlocksPlugin)
-            // .add_plugins(VoxelsPlugin)
+        app
+            .add_plugins(BlocksPlugin)
+            .add_plugins(SharedVoxelsPlugin);
             // .add_plugins(ChunksPlugin)
             // .add_plugins(FrameTimeDiagnosticsPlugin::default())
 
