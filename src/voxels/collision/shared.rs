@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use lightyear::prelude::*;
 use crate::blockdefs::BlockRegistry;
 use crate::{voxels, LoadingState};
-use crate::voxels::Chunk;
+use crate::voxels::{Chunk, LocalChunkPos};
 
 pub struct SharedVoxelCollisionPlugin;
 
@@ -38,7 +38,7 @@ pub fn generate_chunk_collider(
             for x in 0..voxels::CHUNK_SIZE {
                 for y in 0..voxels::CHUNK_SIZE {
                     for z in 0..voxels::CHUNK_SIZE {
-                        let block_id = chunk.voxels[x][y][z];
+                        let block_id = chunk.get_voxel_xyz(x,y,z);
 
                         let Some(def) = block_registry.get_def(block_id) else {
                             warn!("Treating nonexistent block id: {} as non solid!", block_id);

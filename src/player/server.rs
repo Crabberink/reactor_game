@@ -47,7 +47,7 @@ fn handle_connected_player(
         Name::new("Player"),
         Position(spawn_pos),
         PlayerBody,
-        ChunkLoader::of_range(1),
+        ChunkLoader::of_range(3),
         MoveSpeed { speed: 5.0, max_acceleration: 20.0 },
         PlayerPhysicsBundle::default(),
         ActionState::<PlayerAction>::default(),
@@ -112,16 +112,16 @@ fn handle_player_actions(
 
         if !chunks.contains(ray_hit_data.entity) { continue; }
 
+        let hit_point = origin + look_dir * ray_hit_data.distance;
+
         if action_state.just_pressed(&PlayerAction::Break) {
-            let hit_position = origin + (ray_hit_data.distance + 0.01) * look_dir;
-            let block_position = world_to_block(hit_position);
+            let block_position = world_to_block(hit_point - (ray_hit_data.normal * 0.5));
 
         voxel_world.set_block(block_position, air_id);
         }
 
         if action_state.just_pressed(&PlayerAction::Place) {
-            let hit_position = origin + (ray_hit_data.distance - 0.01) * look_dir;
-            let block_position = world_to_block(hit_position);
+            let block_position = world_to_block(hit_point + (ray_hit_data.normal * 0.5));
 
             voxel_world.set_block(block_position, zart_id);
         }

@@ -63,10 +63,6 @@ pub fn chunk_to_world(chunk_pos: ChunkPos) -> Vec3 {
 pub const CHUNK_SIZE: usize = 16;
 pub const VOXEL_SIZE: f32 = 1.0;
 
-#[derive(Component)]
-#[component(storage = "SparseSet")]
-pub struct DirtyChunkMesh;
-
 // YO there are genuine levels to this shit I barely know whats happening here
 #[derive(SystemParam)]
 pub struct VoxelWorld<'w, 's> {

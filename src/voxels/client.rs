@@ -9,7 +9,7 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use crate::blockdefs::BlockRegistry;
 use crate::LoadingState;
-use crate::voxels::{Chunk, DirtyChunkMesh, CHUNK_SIZE, VOXEL_SIZE};
+use crate::voxels::{Chunk, CHUNK_SIZE, VOXEL_SIZE, LocalChunkPos};
 
 pub struct ClientVoxelsPlugin;
 
@@ -19,6 +19,10 @@ impl Plugin for ClientVoxelsPlugin {
         app.add_systems(Update, generate_chunk_mesh.run_if(in_state(LoadingState::Loaded)));
     }
 }
+
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub struct DirtyChunkMesh;
 
 pub fn generate_chunk_mesh(
     registry: Res<BlockRegistry>,
@@ -46,7 +50,7 @@ fn is_solid(chunk: &Chunk, pos: IVec3, registry: &BlockRegistry) -> bool {
     if pos.y < 0 || pos.y >= CHUNK_SIZE as i32 { return false; }
     if pos.z < 0 || pos.z >= CHUNK_SIZE as i32 { return false; }
 
-    let id = chunk.voxels[pos.x as usize][pos.y as usize][pos.z as usize];
+    let id = chunk.get_voxel(LocalChunkPos::new(pos.x,pos.y,pos.z));
     let Some(def) = registry.get_def(id) else {
         warn!("Treating nonexistent block id: {} as transparent!", id);
         return false;
@@ -66,7 +70,7 @@ fn build_mesh(chunk: &Chunk, registry: &BlockRegistry) -> Option<Mesh> {
     for x in 0..CHUNK_SIZE {
         for y in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
-                let id = chunk.voxels[x][y][z];
+                let id = chunk.get_voxel_xyz(x,y,z);
                 let Some(def) = registry.get_def(id) else {
                     warn!("Skipping nonexistent block id: {}!", id);
                     continue;
@@ -74,7 +78,7 @@ fn build_mesh(chunk: &Chunk, registry: &BlockRegistry) -> Option<Mesh> {
 
                 if def.empty { continue; }
 
-                if chunk.voxels[x][y][z] != 0 {
+                if id != 0 {
                     let mut base = positions.len() as u32;
 
                     let offset = Vec3::new(

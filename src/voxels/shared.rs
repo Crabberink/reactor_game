@@ -2,8 +2,8 @@
 use bevy::prelude::*;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
-use crate::voxels::{chunk_to_world, Chunk, DirtyChunkMesh};
-use crate::voxels::client::generate_chunk_mesh;
+use crate::voxels::{chunk_to_world, Chunk};
+use crate::voxels::client::{generate_chunk_mesh, DirtyChunkMesh};
 use crate::voxels::collision::shared::{generate_chunk_collider, DirtyChunkCollider, SharedVoxelCollisionPlugin};
 
 pub struct SharedVoxelsPlugin;

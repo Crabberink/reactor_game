@@ -6,7 +6,7 @@ use lightyear::prelude::{NetworkTarget, Replicate};
 use rand::RngExt;
 use crate::{block_id_palette, voxels, LoadingState};
 use crate::blockdefs::{BlockId, BlockRegistry};
-use crate::voxels::{ChunkPos, CHUNK_SIZE, Chunk, chunk_to_world, DirtyChunkMesh};
+use crate::voxels::{ChunkPos, CHUNK_SIZE, Chunk, chunk_to_world};
 use crate::voxels::collision::shared::DirtyChunkCollider;
 use crate::voxels::shared::ChunkMap;
 
@@ -19,15 +19,11 @@ impl Plugin for ServerVoxelsPlugin {
 }
 
 pub fn spawn_chunk(
-    chunk_pos: ChunkPos,
-    voxel_data: [[[BlockId; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
+    chunk: Chunk,
     commands: &mut Commands
 ) -> Entity {
     commands.spawn((
-        Chunk {
-            coord: chunk_pos,
-            voxels: voxel_data,
-        },
+        chunk,
         // Everyone for now
         Replicate::to_clients(NetworkTarget::All),
     )).id()
@@ -44,24 +40,21 @@ fn spawn_test_chunk(
 
     let mut rng = rand::rng();
 
-    let mut debug_voxel_data = [[[0; 16]; 16]; 16];
-    for (_x, plane) in debug_voxel_data.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-        for (y, row) in plane.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-            for (_z, voxel) in row.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
+    let mut new_chunk = Chunk::from_block(air_id, ChunkPos::ZERO);
+
+    for x in 0..CHUNK_SIZE {
+        for y in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
                 let world_y = y as i32 - 32;
 
-                *voxel = if world_y < 0 {
-                    if rng.random_bool(0.3) {
-                        dirt_id
-                    } else {
-                        air_id
-                    }
-                } else {
-                    air_id
-                };
+                if world_y >= 0 { continue; }
+
+                if rng.random_bool(0.3) {
+                    new_chunk.set_voxel_xyz(x,y,z, dirt_id);
+                }
             }
         }
     }
 
-    spawn_chunk(ChunkPos::ZERO, debug_voxel_data, &mut commands);
+    spawn_chunk(new_chunk, &mut commands);
 }

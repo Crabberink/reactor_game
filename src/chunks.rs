@@ -3,6 +3,8 @@ use bevy::{platform::collections::HashSet, prelude::*};
 use rand::RngExt;
 
 use crate::{LoadingState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, world_to_chunk}};
+use crate::voxels::{ChunkPos, CHUNK_SIZE};
+use crate::voxels::protocol::Chunk;
 use crate::voxels::server::spawn_chunk;
 use crate::voxels::shared::ChunkMap;
 
@@ -67,26 +69,23 @@ fn update_loaded_chunks(
         if !loaded.chunks.contains_key(&pos) {
             let mut rng = rand::rng();
 
-            let mut debug_voxel_data = [[[0; 16]; 16]; 16];
-            for (_x, plane) in debug_voxel_data.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-                for (y, row) in plane.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
-                    for (_z, voxel) in row.iter_mut().enumerate().take(voxels::CHUNK_SIZE) {
+            let mut new_chunk = Chunk::from_block(air_id, pos);
+
+            for x in 0..CHUNK_SIZE {
+                for y in 0..CHUNK_SIZE {
+                    for z in 0..CHUNK_SIZE {
                         let world_y = y as i32 + (pos.y * voxels::CHUNK_SIZE as i32);
 
-                        *voxel = if world_y < 0 {
-                            if rng.random_bool(0.3) {
-                                dirt_id
-                            } else {
-                                air_id
-                            }
-                        } else { 
-                            air_id
-                        };
+                        if world_y >= 0 { continue; }
+
+                        if rng.random_bool(0.3) {
+                            new_chunk.set_voxel_xyz(x,y,z, dirt_id);
+                        }
                     }
                 }
             }
 
-            spawn_chunk(pos, debug_voxel_data, &mut commands);
+            spawn_chunk(new_chunk, &mut commands);
         }
     }
 
