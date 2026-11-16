@@ -1,4 +1,4 @@
-﻿use crate::chunks::ChunkLoader;
+﻿use crate::chunks::{ChunkLoader, ChunkStream};
 use crate::player::shared::{apply_character_action, MoveSpeed, PlayerAction, PlayerPhysicsBundle, PLAYER_HEIGHT};
 use crate::player::PlayerBody;
 use avian3d::prelude::*;
@@ -6,6 +6,7 @@ use bevy::app::{App, Plugin};
 use bevy::ecs::entity::EntityHashSet;
 use bevy::log::info;
 use bevy::prelude::*;
+use bevy_replicon::server::visibility::client_visibility::ClientVisibility;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::connection::client_of::ClientOf;
 use lightyear::connection::host::HostServer;
@@ -47,23 +48,22 @@ fn handle_connected_player(
         Name::new("Player"),
         Position(spawn_pos),
         PlayerBody,
-        ChunkLoader::of_range(3),
+        ChunkLoader::of_range(5),
         MoveSpeed { speed: 5.0, max_acceleration: 20.0 },
         PlayerPhysicsBundle::default(),
         ActionState::<PlayerAction>::default(),
-
         Replicate::to_clients(NetworkTarget::All),
         // We want everyone to predict what this player is going to do, because its a physics object
         PredictionTarget::to_clients(NetworkTarget::All),
-        // The player shouldn't interpolate itself
-        // InterpolationTarget::to_clients(NetworkTarget::AllExceptSingle(remote_id)),
-
+        ChunkStream::default(),
         ControlledBy {
             owner: trigger.entity,
             // They disappear when the player leaves
             lifetime: Lifetime::SessionBased,
         },
     ));
+
+
 }
 
 fn handle_player_actions(

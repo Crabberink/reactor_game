@@ -43,6 +43,6 @@ fn setup_added_chunk(
 
 fn mark_changed_chunks(mut commands: Commands, chunks: Query<Entity, Changed<Chunk>>) {
     for chunk in &chunks {
-        commands.entity(chunk).insert((DirtyChunkMesh, DirtyChunkCollider));
+        commands.entity(chunk).try_insert((DirtyChunkMesh, DirtyChunkCollider));
     }
 }

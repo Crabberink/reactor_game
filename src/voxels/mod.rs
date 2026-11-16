@@ -24,8 +24,11 @@ use crate::voxels::collision::shared::DirtyChunkCollider;
 use crate::voxels::protocol::{Chunk, ChunkDif};
 use crate::voxels::shared::ChunkMap;
 
+/// Position of a block in the world
 pub type BlockPos = IVec3;
+/// Position of a chunk
 pub type ChunkPos = IVec3;
+/// Position of a block within its chunk
 pub type LocalChunkPos = IVec3;
 
 pub fn block_to_chunk_local(block_pos: BlockPos) -> LocalChunkPos {
