@@ -1,9 +1,12 @@
 ﻿use std::f32::consts::PI;
+use crate::chunks::CHUNK_STREAM_RANGE;
 use crate::player::shared::{MoveSpeed, PLAYER_HEIGHT, PLAYER_RADIUS, PlayerAction, PlayerPhysicsBundle, apply_character_action};
 use crate::player::{PlayerBody, PlayerHead, LOOK_SENSITIVITY};
+use crate::voxels::CHUNK_SIZE;
 use avian3d::prelude::{ComputedMass, Forces, Position, SpatialQuery};
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
+use bevy::render::view::Tonemapping;
 use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::prelude::{GamepadStick, InputMap, MouseMove, VirtualDPad};
@@ -20,8 +23,12 @@ impl Plugin for ClientPlayerPlugin {
         app.add_systems(Update, (apply_head_pitch, update_view_angles));
         app.add_systems(FixedPreUpdate, write_look_axes);
         app.add_systems(OnEnter(LoadingState::Loaded), lock_mouse);
+
+        app.insert_resource(ClearColor(FOG_COLOR));
     }
 }
+
+const FOG_COLOR: Color = Color::srgb(0.6, 0.7, 0.8);
 
 #[derive(Component)]
 struct ViewAngles {
@@ -48,6 +55,15 @@ fn handle_new_player(
             commands.spawn((
                 PlayerHead,
                 Camera3d::default(),
+                Tonemapping::None,
+                DistanceFog {
+                    color: FOG_COLOR,
+                    falloff: FogFalloff::Linear { 
+                        start: (CHUNK_SIZE as f32 * (CHUNK_STREAM_RANGE as f32 - 1.5)),
+                        end: (CHUNK_SIZE as f32 * (CHUNK_STREAM_RANGE as f32 - 0.5)),
+                    },
+                    ..default()
+                },
                 Transform::from_xyz(0.0, PLAYER_HEIGHT / 2.0, 0.0),
                 ChildOf(entity),
             ));

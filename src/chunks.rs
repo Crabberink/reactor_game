@@ -103,7 +103,7 @@ fn update_loaded_chunks(
     });
 }
 
-const CHUNK_STREAM_RANGE: i32 = 5;
+pub const CHUNK_STREAM_RANGE: i32 = 5;
 
 fn update_player_pending_chunks(
     mut players: Query<(&mut ChunkStream, &Position)>,

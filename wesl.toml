@@ -1,0 +1,3 @@
+edition = "2026_pre"
+package_manager = "cargo"
+root = "assets/shaders"
