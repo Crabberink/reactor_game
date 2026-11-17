@@ -1,10 +1,10 @@
-﻿use crate::network::server::ServerNetworkPlugin;
+﻿use crate::chunks::ServerChunksPlugin;
+use crate::network::server::ServerNetworkPlugin;
 use crate::network::shared::SEND_INTERVAL;
 use crate::player::server::ServerPlayerPlugin;
+use crate::voxels::server::ServerVoxelsPlugin;
 use bevy::app::{App, Plugin};
 use lightyear::prelude::ReplicationMetadata;
-use crate::chunks::ServerChunksPlugin;
-use crate::voxels::server::ServerVoxelsPlugin;
 
 pub struct ServerPlugin;
 

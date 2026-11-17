@@ -1,10 +1,9 @@
-﻿use avian3d::parry::math::IVector;
+﻿use crate::blockdefs::BlockRegistry;
+use crate::voxels::Chunk;
+use crate::{LoadingState, voxels};
+use avian3d::parry::math::IVector;
 use avian3d::prelude::Collider;
 use bevy::prelude::*;
-use lightyear::prelude::*;
-use crate::blockdefs::BlockRegistry;
-use crate::{voxels, LoadingState};
-use crate::voxels::{Chunk, LocalChunkPos};
 
 pub struct SharedVoxelCollisionPlugin;
 

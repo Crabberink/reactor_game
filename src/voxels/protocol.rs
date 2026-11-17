@@ -1,9 +1,9 @@
-﻿use bevy::prelude::*;
+﻿use crate::blockdefs::BlockId;
+use crate::voxels::*;
+use bevy::prelude::*;
 use bevy_replicon::prelude::Diffable;
 use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::blockdefs::BlockId;
-use crate::voxels::*;
 
 pub struct VoxelsProtocolPlugin;
 

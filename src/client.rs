@@ -1,4 +1,5 @@
 ﻿use crate::player::client::ClientPlayerPlugin;
+use crate::voxels::client::ClientVoxelsPlugin;
 use avian3d::parry::glamx::Vec3;
 use bevy::app::{App, Plugin, Startup};
 use bevy::asset::Assets;
@@ -7,7 +8,6 @@ use bevy::light::{DirectionalLight, PointLight};
 use bevy::mesh::{Mesh, Mesh3d};
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::prelude::{Capsule3d, Commands, ResMut, Transform, default};
-use crate::voxels::client::ClientVoxelsPlugin;
 
 pub struct ClientPlugin;
 

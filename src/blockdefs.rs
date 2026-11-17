@@ -1,4 +1,3 @@
-use std::error::Error;
 use bevy::asset::io::Reader;
 use bevy::asset::{Asset, AssetLoader, LoadContext, LoadedFolder};
 use bevy::ecs::system::SystemParam;
@@ -7,6 +6,7 @@ use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy_inspector_egui::egui::load::LoadError;
 use serde::Deserialize;
+use std::error::Error;
 use thiserror::Error;
 
 use crate::LoadingState;

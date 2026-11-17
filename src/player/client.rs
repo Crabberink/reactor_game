@@ -1,7 +1,7 @@
-﻿use std::f32::consts::PI;
+﻿use crate::LoadingState;
 use crate::chunks::CHUNK_STREAM_RANGE;
 use crate::player::shared::{MoveSpeed, PLAYER_HEIGHT, PLAYER_RADIUS, PlayerAction, PlayerPhysicsBundle, apply_character_action};
-use crate::player::{PlayerBody, PlayerHead, LOOK_SENSITIVITY};
+use crate::player::{LOOK_SENSITIVITY, PlayerBody, PlayerHead};
 use crate::voxels::CHUNK_SIZE;
 use avian3d::prelude::{ComputedMass, Forces, Position, SpatialQuery};
 use bevy::app::{App, Plugin};
@@ -11,7 +11,7 @@ use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::prelude::{GamepadStick, InputMap, MouseMove, VirtualDPad};
 use lightyear::prelude::*;
-use crate::LoadingState;
+use std::f32::consts::PI;
 
 pub struct ClientPlayerPlugin;
 impl Plugin for ClientPlayerPlugin {

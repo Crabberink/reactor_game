@@ -1,3 +1,4 @@
+use crate::LoadingState;
 use crate::network::client::{ClientTransports, GameClient};
 use crate::network::server::{GameServer, ServerTransports};
 use crate::network::shared::{CLIENT_PORT, SERVER_ADDR, SERVER_PORT, SHARED_SETTINGS};
@@ -11,7 +12,6 @@ use bevy::winit::WinitSettings;
 use clap::{Parser, Subcommand};
 use lightyear::prelude::*;
 use std::time::Duration;
-use crate::LoadingState;
 
 #[derive(Parser, Debug)]
 pub struct Cli {
@@ -160,7 +160,7 @@ pub fn window_plugin() -> WindowPlugin {
 pub fn log_plugin() -> LogPlugin {
     let plugin = LogPlugin {
         level: Level::INFO,
-        filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn,naga=warn,bevy_enhanced_input::action::fns=error".to_string(),
+        filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn,naga=warn,bevy_enhanced_input::action::fns=error,lightyear_debug=off".to_string(),
         ..default()
     };
     // let plugin = LogPlugin {

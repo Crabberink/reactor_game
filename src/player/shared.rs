@@ -1,4 +1,7 @@
-﻿use crate::player::{Inputs, PlayerBody, PlayerHead, PlayerMovement};
+﻿use crate::blockdefs::BlockRegistry;
+use crate::player::{Inputs, PlayerBody, PlayerHead, PlayerMovement};
+use crate::voxels::VoxelWorld;
+use crate::{block_id_palette, voxels};
 use avian3d::prelude::forces::ForcesItem;
 use avian3d::prelude::*;
 use bevy::app::{App, Plugin};
@@ -6,9 +9,6 @@ use bevy::prelude::*;
 use leafwing_input_manager::Actionlike;
 use leafwing_input_manager::prelude::ActionState;
 use serde::{Deserialize, Serialize};
-use crate::{block_id_palette, voxels};
-use crate::blockdefs::BlockRegistry;
-use crate::voxels::VoxelWorld;
 
 pub struct SharedPlayerPlugin;
 impl Plugin for SharedPlayerPlugin {
@@ -77,7 +77,7 @@ pub fn apply_character_action(
             ).is_some()
         {
             forces.apply_linear_impulse(Vec3::new(0.0,5.0,0.0));
-        } else { info!("Fuck you you aint jumpin dumnbass"); }
+        }
     }
 
     // Normalized input

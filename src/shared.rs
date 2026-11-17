@@ -1,14 +1,14 @@
-﻿use crate::network::protocol::ProtocolPlugin;
+﻿use crate::LoadingState;
+use crate::blockdefs::BlocksPlugin;
+use crate::network::protocol::ProtocolPlugin;
 use crate::network::shared::SharedNetworkPlugin;
 use crate::player::shared::SharedPlayerPlugin;
+use crate::voxels::shared::SharedVoxelsPlugin;
 use avian3d::PhysicsPlugins;
 use avian3d::prelude::*;
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
 use lightyear::avian3d::plugin::{AvianReplicationMode, LightyearAvianPlugin};
-use crate::blockdefs::BlocksPlugin;
-use crate::LoadingState;
-use crate::voxels::shared::SharedVoxelsPlugin;
 
 #[derive(Clone)]
 pub struct SharedPlugin;

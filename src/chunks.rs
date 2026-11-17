@@ -1,14 +1,14 @@
-use std::collections::VecDeque;
 use avian3d::prelude::Position;
 use bevy::{platform::collections::HashSet, prelude::*};
 use lightyear::prelude::{ControlledBy, ReplicationSender, VisibilityExt};
 use rand::RngExt;
+use std::collections::VecDeque;
 
-use crate::{LoadingState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, world_to_chunk}};
-use crate::voxels::{ChunkPos, CHUNK_SIZE, chunk_to_world};
 use crate::voxels::protocol::Chunk;
 use crate::voxels::server::spawn_chunk;
 use crate::voxels::shared::ChunkMap;
+use crate::voxels::{CHUNK_SIZE, ChunkPos, chunk_to_world};
+use crate::{LoadingState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, world_to_chunk}};
 
 pub struct ServerChunksPlugin;
 
@@ -51,7 +51,8 @@ fn update_loaded_chunks(
     block_registry: Res<BlockRegistry>,
     mut loaded: ResMut<ChunkMap>,
     mut loaders: Query<(&Position, &mut ChunkLoader)>,
-    mut clients: Query<Entity, With<ReplicationSender>>,
+    clients: Query<Entity, With<ReplicationSender>>,
+    mut streams: Query<&mut ChunkStream>,
     mut commands: Commands,
 ) {
     let mut desired: HashSet<IVec3> = HashSet::new();
@@ -94,27 +95,38 @@ fn update_loaded_chunks(
     }
 
     loaded.chunks.retain(|pos, chunk_entity| {
-        if !desired.contains(pos) {
-            commands.entity(*chunk_entity).despawn();
-            false
-        } else {
-            true
+        if desired.contains(pos) { return true; }
+
+        if let Some((p, l)) = loaders.iter().find(|(p, _)| {
+            (*pos - world_to_chunk(p.0)).abs().max_element() <= 2
+        }) {
+            error!(
+                "despawning chunk {pos} next to a loader at {:?} (chunk {}, range {}), desired={}",
+                p.0, world_to_chunk(p.0), l.range, desired.len()
+            );
         }
+
+        commands.entity(*chunk_entity).despawn();
+        for mut s in &mut streams {
+            s.visible.remove(pos);
+        }
+
+        false
     });
 }
 
 pub const CHUNK_STREAM_RANGE: i32 = 5;
 
 fn update_player_pending_chunks(
-    mut players: Query<(&mut ChunkStream, &Position)>,
+    mut players: Query<(&mut ChunkStream, &ChunkLoader, &Position)>,
 ) {
-    players.par_iter_mut().for_each(|(mut stream, pos)| {
+    players.par_iter_mut().for_each(|(mut stream, loader, pos)| {
         let old_center = stream.center;
         let new_center = world_to_chunk(pos.0);
         if old_center == Some(new_center) { return; }
         stream.center = Some(new_center);
 
-        let mut wanted = chunks_in_range(new_center, CHUNK_STREAM_RANGE);
+        let mut wanted = chunks_in_range(new_center, loader.range);
         wanted.retain(|c| { !stream.visible.contains(c) });
 
         let mut add: Vec<_> = wanted.iter().copied().collect();
@@ -122,7 +134,7 @@ fn update_player_pending_chunks(
 
         stream.pending = add.into();
 
-        let keep = chunks_in_range(new_center, CHUNK_STREAM_RANGE + 1);
+        let keep = chunks_in_range(new_center, loader.range + 1);
         let to_hide: HashSet<_> = stream.visible.difference(&keep).cloned().collect();
 
         stream.hiding = to_hide;
@@ -182,7 +194,9 @@ fn chunks_in_range(position: ChunkPos, range: i32) -> HashSet<ChunkPos> {
     for x in -range..=range {
         for y in -range..=range {
             for z in -range..=range {
-                if (ChunkPos::new(x,y,z) - position).length_squared() > range_sq { continue };
+                let offset = ChunkPos::new(x,y,z);
+
+                if offset.length_squared() > range_sq { continue; }
 
                 desired.insert(position + IVec3::new(x, y, z));
             }

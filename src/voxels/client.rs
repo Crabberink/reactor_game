@@ -1,4 +1,7 @@
-﻿use bevy::asset::RenderAssetUsages;
+﻿use crate::LoadingState;
+use crate::blockdefs::BlockRegistry;
+use crate::voxels::{CHUNK_SIZE, Chunk, LocalChunkPos, VOXEL_SIZE};
+use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
@@ -7,9 +10,6 @@ use bevy::shader::ShaderRef;
 use lightyear::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use crate::blockdefs::BlockRegistry;
-use crate::LoadingState;
-use crate::voxels::{Chunk, CHUNK_SIZE, VOXEL_SIZE, LocalChunkPos};
 
 pub struct ClientVoxelsPlugin;
 

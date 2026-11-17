@@ -5,22 +5,16 @@ pub mod client;
 pub mod protocol;
 pub mod server;
 
-use avian3d::dynamics::rigid_body::RigidBody;
 use bevy::ecs::system::SystemParam;
 use bevy::mesh::*;
-use bevy::pbr::{ExtendedMaterial, MaterialExtension};
-use bevy::platform::collections::HashMap;
+use bevy::pbr::MaterialExtension;
+use bevy::prelude::*;
 use bevy::render::render_resource::*;
-use bevy::shader::ShaderRef;
-use bevy::{asset::RenderAssetUsages, prelude::*};
 use bevy_replicon::prelude::EntityCommandsDiffExt;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 
-use crate::blockdefs::{BlockId, BlockRegistry};
-use crate::voxels::client::VoxelMaterial;
-use crate::voxels::collision::shared::DirtyChunkCollider;
+use crate::blockdefs::BlockId;
 use crate::voxels::protocol::{Chunk, ChunkDif};
 use crate::voxels::shared::ChunkMap;
 
