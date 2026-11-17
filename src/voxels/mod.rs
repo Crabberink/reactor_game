@@ -1,4 +1,4 @@
-#[allow(dead_code)]
+#![allow(dead_code)]
 pub mod collision;
 pub mod shared;
 pub mod client;
@@ -6,13 +6,8 @@ pub mod protocol;
 pub mod server;
 
 use bevy::ecs::system::SystemParam;
-use bevy::mesh::*;
-use bevy::pbr::MaterialExtension;
 use bevy::prelude::*;
-use bevy::render::render_resource::*;
 use bevy_replicon::prelude::EntityCommandsDiffExt;
-use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 
 use crate::blockdefs::BlockId;
 use crate::voxels::protocol::{Chunk, ChunkDif};
@@ -68,6 +63,7 @@ pub struct VoxelWorld<'w, 's> {
 	commands: Commands<'w, 's>
 }
 
+#[allow(dead_code)]
 impl<'w, 's> VoxelWorld<'w, 's> {
 	pub fn get_block(&self, block_pos: BlockPos) -> Option<BlockId> {
 		let chunk_pos = block_to_chunk(block_pos);

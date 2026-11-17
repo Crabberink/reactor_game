@@ -20,13 +20,13 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn client_id(&self) -> Option<u64> {
-        match &self.mode {
-            Some(Mode::Client { client_id }) => *client_id,
-            Some(Mode::HostClient { client_id }) => *client_id,
-            _ => None,
-        }
-    }
+    // pub fn client_id(&self) -> Option<u64> {
+    //     match &self.mode {
+    //         Some(Mode::Client { client_id }) => *client_id,
+    //         Some(Mode::HostClient { client_id }) => *client_id,
+    //         _ => None,
+    //     }
+    // }
 
     pub fn headless(&self) -> bool {
         matches!(self.mode.as_ref(), Some(Mode::Server))
@@ -48,7 +48,7 @@ impl Cli {
         let mut app = Cli::create_app(add_inspector, self.mode.as_ref(), self.headless());
 
         match self.mode {
-            Some(Mode::Client { client_id }) => {
+            Some(Mode::Client { .. }) => {
                 // steam resources go here
                 app.add_plugins(lightyear::prelude::client::ClientPlugins { tick_duration });
 
@@ -60,7 +60,7 @@ impl Cli {
 
                 app
             },
-            Some(Mode::HostClient { client_id }) => {
+            Some(Mode::HostClient { .. }) => {
                 // steam resources go here
                 app.add_plugins(lightyear::prelude::client::ClientPlugins { tick_duration });
                 app.add_plugins(lightyear::prelude::server::ServerPlugins { tick_duration });
@@ -105,7 +105,7 @@ impl Cli {
 
                 app.add_systems(OnEnter(LoadingState::Loaded), crate::network::server::start);
             },
-            Some(Mode::HostClient { client_id }) => {
+            Some(Mode::HostClient { .. }) => {
                 let server = app
                     .world_mut()
                     .spawn(GameServer {
@@ -160,7 +160,7 @@ pub fn window_plugin() -> WindowPlugin {
 pub fn log_plugin() -> LogPlugin {
     let plugin = LogPlugin {
         level: Level::INFO,
-        filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn,naga=warn,bevy_enhanced_input::action::fns=error,lightyear_debug=off".to_string(),
+        filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn,naga=warn,bevy_enhanced_input::action::fns=error".to_string(),
         ..default()
     };
     // let plugin = LogPlugin {

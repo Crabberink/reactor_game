@@ -3,11 +3,11 @@ use crate::chunks::CHUNK_STREAM_RANGE;
 use crate::player::shared::{MoveSpeed, PLAYER_HEIGHT, PLAYER_RADIUS, PlayerAction, PlayerPhysicsBundle, apply_character_action};
 use crate::player::{LOOK_SENSITIVITY, PlayerBody, PlayerHead};
 use crate::voxels::CHUNK_SIZE;
-use avian3d::prelude::{ComputedMass, Forces, Position, SpatialQuery};
+use avian3d::prelude::{ComputedMass, Forces, SpatialQuery};
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
 use bevy::render::view::Tonemapping;
-use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
+use bevy::window::{CursorGrabMode, CursorOptions};
 use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::prelude::{GamepadStick, InputMap, MouseMove, VirtualDPad};
 use lightyear::prelude::*;
@@ -121,16 +121,16 @@ fn handle_player_actions(
         &MoveSpeed,
         Has<Predicted>
     ), Or<(With<Predicted>, With<DeterministicPredicted>)>>,
-    mut player_head_query: Query<&mut Transform, With<PlayerHead>>,
 ) {
-    let tick = timeline.tick();
+    let _tick = timeline.tick();
 
     for (
         entity,
         forces,
         computed_mass,
         action_state,
-        move_speed, predicted
+        move_speed,
+        _predicted
     ) in player_query.iter_mut() {
         apply_character_action(&time, &spatial_query, entity, forces, computed_mass, action_state, move_speed);
     }

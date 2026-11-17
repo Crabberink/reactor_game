@@ -4,7 +4,6 @@ use crate::voxels::{Chunk, chunk_to_world};
 use avian3d::prelude::*;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use lightyear::prelude::*;
 
 pub struct SharedVoxelsPlugin;
 

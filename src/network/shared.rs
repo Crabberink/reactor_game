@@ -4,7 +4,7 @@ use std::time::Duration;
 
 pub struct SharedNetworkPlugin;
 impl Plugin for SharedNetworkPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(&self, _app: &mut App) {
 
     }
 }

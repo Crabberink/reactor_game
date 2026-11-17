@@ -8,9 +8,8 @@ mod shared;
 mod client;
 mod server;
 
-use avian3d::prelude::*;
 use bevy::prelude::*;
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use std::time::Duration;
 
 use crate::cli::*;
@@ -57,7 +56,7 @@ pub enum LoadingState {
 fn add_input_delay(app: &mut App) {
     use lightyear::prelude::client::{InputDelayConfig, InputTimelineConfig};
 
-    // set some input-delay since we are predicting all entities
+    // set some input-delay since we are predicting all entities (whatever the fuck that means)
     app.insert_resource(
         InputTimelineConfig::default().with_input_delay(InputDelayConfig::fixed_input_delay(0)),
     );

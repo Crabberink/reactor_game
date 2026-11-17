@@ -1,7 +1,6 @@
 ﻿use crate::blockdefs::BlockId;
 use crate::voxels::*;
 use bevy::prelude::*;
-use bevy_replicon::prelude::Diffable;
 use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 

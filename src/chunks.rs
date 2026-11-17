@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use crate::voxels::protocol::Chunk;
 use crate::voxels::server::spawn_chunk;
 use crate::voxels::shared::ChunkMap;
-use crate::voxels::{CHUNK_SIZE, ChunkPos, chunk_to_world};
+use crate::voxels::{CHUNK_SIZE, ChunkPos};
 use crate::{LoadingState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, world_to_chunk}};
 
 pub struct ServerChunksPlugin;
@@ -20,7 +20,7 @@ impl Plugin for ServerChunksPlugin {
                     .before(voxels::client::generate_chunk_mesh)
                     .before(voxels::collision::shared::generate_chunk_collider)
                     .run_if(in_state(LoadingState::Loaded)
-            ));
+                    ));
 
         app.add_systems(Update, (update_player_pending_chunks, update_visible_chunks).chain());
         app.add_observer(hide_chunks_for_new_client);

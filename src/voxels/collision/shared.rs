@@ -1,15 +1,17 @@
 ﻿use crate::blockdefs::BlockRegistry;
-use crate::voxels::Chunk;
+use crate::voxels::{world_to_chunk, Chunk};
 use crate::{LoadingState, voxels};
 use avian3d::parry::math::IVector;
-use avian3d::prelude::Collider;
+use avian3d::prelude::{Collider, Position, RigidBodyDisabled};
 use bevy::prelude::*;
+use crate::voxels::shared::ChunkMap;
 
 pub struct SharedVoxelCollisionPlugin;
 
 impl Plugin for SharedVoxelCollisionPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(FixedUpdate, generate_chunk_collider.run_if(in_state(LoadingState::Loaded)));
+        app.add_systems(FixedPreUpdate, gate_bodies);
     }
 }
 
@@ -61,5 +63,24 @@ pub fn generate_chunk_collider(
         }
 
         commands.entity(entity).remove::<DirtyChunkCollider>();
+    }
+}
+
+/// Freezes bodies whose chunk doesn't yet have physics.
+fn gate_bodies(
+    map: Res<ChunkMap>,
+    ready: Query<(), Without<DirtyChunkCollider>>,
+    mut bodies: Query<(Entity, &Position, Has<RigidBodyDisabled>)>,
+    mut commands: Commands,
+) {
+    for (e, pos, disabled) in &mut bodies {
+        let chunk_ok = map.chunks.get(&world_to_chunk(pos.0))
+            .is_some_and(|&c| ready.contains(c));
+
+        match (chunk_ok, disabled) {
+            (false, false) => { commands.entity(e).insert(RigidBodyDisabled); }
+            (true, true)   => { commands.entity(e).remove::<RigidBodyDisabled>(); }
+            _ => {}
+        }
     }
 }

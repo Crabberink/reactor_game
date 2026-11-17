@@ -6,7 +6,7 @@ use lightyear::prelude::{NetworkTarget, Replicate, ReplicationSender, Visibility
 pub struct ServerVoxelsPlugin;
 
 impl Plugin for ServerVoxelsPlugin {
-    fn build(&self, app: &mut App) {}
+    fn build(&self, _app: &mut App) {}
 }
 
 pub fn spawn_chunk(

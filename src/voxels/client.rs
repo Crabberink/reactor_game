@@ -7,7 +7,6 @@ use bevy::pbr::{ExtendedMaterial, MaterialExtension};
 use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
-use lightyear::prelude::*;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 

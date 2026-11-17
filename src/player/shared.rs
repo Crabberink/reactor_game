@@ -1,8 +1,4 @@
-﻿use crate::blockdefs::BlockRegistry;
-use crate::player::{Inputs, PlayerBody, PlayerHead, PlayerMovement};
-use crate::voxels::VoxelWorld;
-use crate::{block_id_palette, voxels};
-use avian3d::prelude::forces::ForcesItem;
+﻿use avian3d::prelude::forces::ForcesItem;
 use avian3d::prelude::*;
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
@@ -110,37 +106,6 @@ fn apply_yaw(mut query: Query<(&ActionState<PlayerAction>, &mut Rotation)>) {
     for (actions, mut rotation) in query.iter_mut() {
         let look = actions.axis_pair(&PlayerAction::LookAxes);
         rotation.0 = Quat::from_rotation_y(look.x);
-    }
-}
-
-fn apply_block_breaking() {
-
-    fn block_breaking(
-        block_registry: Res<BlockRegistry>,
-        mut players: Query<(
-            &mut Inputs,
-            &PlayerMovement,
-        ), Without<PlayerHead>>,
-        player_heads: Query<(&RayCaster, &RayHits), With<PlayerHead>>,
-        mut voxel_world: VoxelWorld,
-    ) {
-        block_id_palette!(block_registry, {
-		"rg_air" => air_id,
-	});
-
-        for (mut inputs, player_movement) in players.iter_mut() {
-
-            if !inputs.take_breaking() { continue; }
-
-            let Ok((ray_caster, ray_hits)) = player_heads.get(player_movement.head) else { continue; };
-            let Some(hit) = ray_hits.iter().next() else { continue; };
-
-            let hit_position = (hit.distance + 0.01) * ray_caster.global_direction() + ray_caster.global_origin();
-
-            let block_positon = voxels::world_to_block(hit_position);
-
-            voxel_world.set_block(block_positon, air_id);
-        }
     }
 }
 

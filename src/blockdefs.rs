@@ -4,9 +4,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::pbr::ExtendedMaterial;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use bevy_inspector_egui::egui::load::LoadError;
 use serde::Deserialize;
-use std::error::Error;
 use thiserror::Error;
 
 use crate::LoadingState;
@@ -168,7 +166,7 @@ struct BlockRegisterParams<'w> {
 }
 
 fn register_blocks(
-	mut params: BlockRegisterParams,
+	params: BlockRegisterParams,
 	mut commands: Commands,
 	mut next_state: ResMut<NextState<LoadingState>>,
 	mut registry: ResMut<BlockRegistry>
