@@ -4,6 +4,7 @@ pub mod shared;
 pub mod client;
 pub mod protocol;
 pub mod server;
+pub mod mesh;
 
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -29,7 +30,7 @@ pub fn block_to_chunk(block_pos: BlockPos) -> ChunkPos {
 }
 
 pub fn world_to_block(world_pos: Vec3) -> BlockPos {
-	world_pos.floor().as_ivec3()
+	(world_pos / VOXEL_SIZE).floor().as_ivec3()
 }
 
 pub fn world_to_chunk_local(world_pos: Vec3) -> LocalChunkPos {
@@ -41,7 +42,7 @@ pub fn world_to_chunk(world_pos: Vec3) -> ChunkPos {
 }
 
 pub fn block_to_world(block_pos: BlockPos) -> Vec3 {
-	block_pos.as_vec3()
+	block_pos.as_vec3() * VOXEL_SIZE
 }
 
 pub fn chunk_to_block(chunk_pos: ChunkPos) -> BlockPos {
@@ -52,8 +53,8 @@ pub fn chunk_to_world(chunk_pos: ChunkPos) -> Vec3 {
 	block_to_world(chunk_to_block(chunk_pos))
 }
 
-pub const CHUNK_SIZE: usize = 16;
-pub const VOXEL_SIZE: f32 = 1.0;
+pub const CHUNK_SIZE: usize = 32;
+pub const VOXEL_SIZE: f32 = 0.5;
 
 // YO there are genuine levels to this shit I barely know whats happening here
 #[derive(SystemParam)]

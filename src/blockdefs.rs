@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use bevy::asset::io::Reader;
 use bevy::asset::{Asset, AssetLoader, LoadContext, LoadedFolder};
 use bevy::ecs::system::SystemParam;
@@ -8,7 +9,7 @@ use serde::Deserialize;
 use thiserror::Error;
 
 use crate::LoadingState;
-use crate::voxels::client::{ChunkMaterialRes, VoxelMaterial, VoxelMaterialExtension};
+use crate::voxels::mesh::{ChunkMaterialRes, VoxelMaterial, VoxelMaterialExtension};
 
 pub struct BlocksPlugin;
 impl Plugin for BlocksPlugin {
@@ -59,7 +60,7 @@ fn default_false() -> bool {
 
 pub type BlockId = u16;
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone)]
 pub struct BlockRegistry {
 	definitions: Vec<BlockDefinition>,
 	key_to_id: HashMap<String, BlockId>,
@@ -85,6 +86,9 @@ impl BlockRegistry {
 		self.definitions.push(block_def);
 	}
 }
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct SharedBlockRegistry(Arc<BlockRegistry>);
 
 #[derive(Default, TypePath)]
 struct BlockDefinitionAssetLoader;
@@ -169,7 +173,7 @@ fn register_blocks(
 	params: BlockRegisterParams,
 	mut commands: Commands,
 	mut next_state: ResMut<NextState<LoadingState>>,
-	mut registry: ResMut<BlockRegistry>
+	mut registry: ResMut<BlockRegistry>,
 ) {
 	let Some(blocks_folder) = params.loaded_folders.get(&params.block_assets.defs_folder) else {
 		info_once!("register_blocks: waiting for the DEFS folder");
@@ -188,6 +192,11 @@ fn register_blocks(
 			
 			registry.register(def.clone());
 		}
+
+
+		commands.insert_resource(SharedBlockRegistry(Arc::new(registry.clone())));
+
+		info!("SharedBlockRegistry has been setup!");
 
 		return;
 	};
@@ -226,6 +235,10 @@ fn register_blocks(
 	}
 
 	info!("Blockdefs have been registered!");
+
+	commands.insert_resource(SharedBlockRegistry(Arc::new(registry.clone())));
+
+	info!("SharedBlockRegistry has been setup!");
 
 	let Some(mut materials) = params.materials else { return; };
 	let material_handle = materials.add(

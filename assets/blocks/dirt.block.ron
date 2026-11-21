@@ -2,5 +2,5 @@ BlockDefinition(
 	name: "Dirt",
 	key: "rg_dirt",
 	hardness: 1.0,
-	texture: "textures/Dirt.png"
+	texture: "textures/Dirt_8.png"
 )

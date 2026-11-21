@@ -1,5 +1,5 @@
-﻿use crate::voxels::client::{DirtyChunkMesh, generate_chunk_mesh};
-use crate::voxels::collision::shared::{DirtyChunkCollider, SharedVoxelCollisionPlugin, generate_chunk_collider};
+﻿use crate::voxels::collision::shared::{DirtyChunkCollider, SharedVoxelCollisionPlugin, queue_generate_chunk_collider};
+use crate::voxels::mesh::{DirtyChunkMesh, queue_generate_chunk_mesh};
 use crate::voxels::{Chunk, chunk_to_world};
 use avian3d::prelude::*;
 use bevy::platform::collections::HashMap;
@@ -10,8 +10,8 @@ pub struct SharedVoxelsPlugin;
 impl Plugin for SharedVoxelsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ChunkMap>();
-        app.add_plugins(SharedVoxelCollisionPlugin);
-        app.add_systems(Update, mark_changed_chunks.before(generate_chunk_mesh).before(generate_chunk_collider));
+        // app.add_plugins(SharedVoxelCollisionPlugin);
+        app.add_systems(Update, mark_changed_chunks.before(queue_generate_chunk_mesh).before(queue_generate_chunk_collider));
         app.add_observer(setup_added_chunk);
         app.add_observer(cleanup_removed_chunk);
     }

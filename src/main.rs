@@ -20,7 +20,7 @@ use crate::shared::SharedPlugin;
 
 fn main() {
     let cli = Cli::parse();
-    let mut app = cli.build_app(Duration::from_secs_f64(1.0 / FIXED_TIMESTEP_HZ), true);
+    let mut app = cli.build_app(Duration::from_secs_f64(1.0 / FIXED_TIMESTEP_HZ), false);
 
     app.add_plugins(SharedPlugin);
 

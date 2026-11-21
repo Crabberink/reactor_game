@@ -1,29 +1,31 @@
-use avian3d::prelude::Position;
-use bevy::{platform::collections::HashSet, prelude::*};
-use lightyear::prelude::{ControlledBy, ReplicationSender, VisibilityExt};
-use rand::RngExt;
-use std::collections::VecDeque;
-
 use crate::voxels::protocol::Chunk;
 use crate::voxels::server::spawn_chunk;
 use crate::voxels::shared::ChunkMap;
 use crate::voxels::{CHUNK_SIZE, ChunkPos};
 use crate::{LoadingState, block_id_palette, blockdefs::BlockRegistry, voxels::{self, world_to_chunk}};
+use avian3d::prelude::Position;
+use bevy::tasks::futures::check_ready;
+use bevy::tasks::{AsyncComputeTaskPool, Task};
+use bevy::{platform::collections::HashSet, prelude::*};
+use lightyear::prelude::{ControlledBy, ReplicationSender, VisibilityExt};
+use std::collections::VecDeque;
 
 pub struct ServerChunksPlugin;
 
 impl Plugin for ServerChunksPlugin {
 	fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, 
-                update_loaded_chunks
-                    .before(voxels::client::generate_chunk_mesh)
-                    .before(voxels::collision::shared::generate_chunk_collider)
-                    .run_if(in_state(LoadingState::Loaded)
-                    ));
+            .add_systems(Update,
+                (update_loaded_chunks, collect_generated_chunks).chain()
+                .before(voxels::mesh::queue_generate_chunk_mesh)
+                .before(voxels::collision::shared::queue_generate_chunk_collider)
+                .run_if(in_state(LoadingState::Loaded)
+            ));
 
         app.add_systems(Update, (update_player_pending_chunks, update_visible_chunks).chain());
         app.add_observer(hide_chunks_for_new_client);
+
+        app.init_resource::<InFlight>();
 	}
 }
 
@@ -47,11 +49,19 @@ impl ChunkLoader {
     }
 }
 
+#[derive(Component)]
+struct ChunkGenTask { pos: ChunkPos, task: Task<Chunk> }
+
+#[derive(Resource, Default, Deref, DerefMut)]
+struct InFlight(HashSet<ChunkPos>);
+
+const MAX_IN_FLIGHT: usize = 32;
+
 fn update_loaded_chunks(
     block_registry: Res<BlockRegistry>,
     mut loaded: ResMut<ChunkMap>,
+    mut in_flight: ResMut<InFlight>,
     mut loaders: Query<(&Position, &mut ChunkLoader)>,
-    clients: Query<Entity, With<ReplicationSender>>,
     mut streams: Query<&mut ChunkStream>,
     mut commands: Commands,
 ) {
@@ -70,41 +80,37 @@ fn update_loaded_chunks(
         "rg_dirt" => dirt_id,
 	});
 
-    for &pos in &desired {
-        if !loaded.chunks.contains_key(&pos) {
-            let mut rng = rand::rng();
+    let pool = AsyncComputeTaskPool::get();
 
-            let mut new_chunk = Chunk::from_block(air_id, pos);
+    let mut chunks_to_queue: Vec<ChunkPos> = desired.iter()
+        .filter(|p| !loaded.chunks.contains_key(*p) && !in_flight.contains(*p))
+        .copied()
+        .collect();
 
-            for x in 0..CHUNK_SIZE {
-                for y in 0..CHUNK_SIZE {
-                    for z in 0..CHUNK_SIZE {
-                        let world_y = y as i32 + (pos.y * voxels::CHUNK_SIZE as i32);
+    chunks_to_queue.sort_by_key(|p| {
+        loaders.iter()
+            .map(|(pos, _)| (*p - world_to_chunk(pos.0)).length_squared())
+            .min()
+            .unwrap_or(i32::MAX)
+    });
 
-                        if world_y >= 0 { continue; }
+    for &pos in chunks_to_queue.iter().take(MAX_IN_FLIGHT.saturating_sub(in_flight.len())) {
+        let gen_task = pool.spawn(async move {
+            let chunk = if pos.y * CHUNK_SIZE as i32 >= 0 {
+                Chunk::from_block(air_id, pos)
+            } else {
+                Chunk::from_block(dirt_id, pos)
+            };
 
-                        if rng.random_bool(0.3) {
-                            new_chunk.set_voxel_xyz(x,y,z, dirt_id);
-                        }
-                    }
-                }
-            }
+            chunk
+        });
 
-            spawn_chunk(new_chunk, clients, &mut commands);
-        }
+        commands.spawn(ChunkGenTask { pos, task: gen_task });
+        in_flight.insert(pos);
     }
 
     loaded.chunks.retain(|pos, chunk_entity| {
         if desired.contains(pos) { return true; }
-
-        if let Some((p, l)) = loaders.iter().find(|(p, _)| {
-            (*pos - world_to_chunk(p.0)).abs().max_element() <= 2
-        }) {
-            error!(
-                "despawning chunk {pos} next to a loader at {:?} (chunk {}, range {}), desired={}",
-                p.0, world_to_chunk(p.0), l.range, desired.len()
-            );
-        }
 
         commands.entity(*chunk_entity).despawn();
         for mut s in &mut streams {
@@ -113,6 +119,22 @@ fn update_loaded_chunks(
 
         false
     });
+}
+
+fn collect_generated_chunks(
+    mut tasks: Query<(Entity, &mut ChunkGenTask)>,
+    mut in_flight: ResMut<InFlight>,
+    clients: Query<Entity, With<ReplicationSender>>,
+    mut commands: Commands,
+) {
+    for (e, mut handle) in tasks.iter_mut().take(8) {
+        let Some(chunk) = check_ready(&mut handle.task) else { continue };
+
+        in_flight.remove(&handle.pos);
+
+        spawn_chunk(chunk, clients, &mut commands);
+        commands.entity(e).despawn();
+    }
 }
 
 pub const CHUNK_STREAM_RANGE: i32 = 5;

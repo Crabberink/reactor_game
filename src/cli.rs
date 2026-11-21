@@ -160,7 +160,7 @@ pub fn window_plugin() -> WindowPlugin {
 pub fn log_plugin() -> LogPlugin {
     let plugin = LogPlugin {
         level: Level::INFO,
-        filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn,naga=warn,bevy_enhanced_input::action::fns=error".to_string(),
+        // filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn,naga=warn,bevy_enhanced_input::action::fns=error".to_string(),
         ..default()
     };
     // let plugin = LogPlugin {

@@ -1,4 +1,5 @@
-﻿use crate::blockdefs::BlockId;
+﻿use std::sync::Arc;
+use crate::blockdefs::BlockId;
 use crate::voxels::*;
 use bevy::prelude::*;
 use lightyear::prelude::*;
@@ -84,10 +85,10 @@ impl PalettedData {
     }
 }
 
-#[derive(Component, Serialize, Deserialize, Reflect)]
+#[derive(Component, Serialize, Deserialize, Reflect, Clone)]
 pub struct Chunk {
     pub coord: ChunkPos,
-    data: PalettedData,
+    data: Arc<PalettedData>,
 }
 
 const N: usize = CHUNK_SIZE;
@@ -102,7 +103,7 @@ impl Chunk {
     }
 
     pub fn set_voxel(&mut self, local_pos: LocalChunkPos, block_id: BlockId) {
-        self.data.set(Self::idx(local_pos.x as usize, local_pos.y as usize, local_pos.z as usize), block_id)
+        Arc::make_mut(&mut self.data).set(Self::idx(local_pos.x as usize, local_pos.y as usize, local_pos.z as usize), block_id)
     }
 
     pub fn get_voxel_xyz(&self, x: usize,  y: usize, z: usize) -> BlockId {
@@ -110,13 +111,13 @@ impl Chunk {
     }
 
     pub fn set_voxel_xyz(&mut self, x: usize,  y: usize, z: usize, block_id: BlockId) {
-        self.data.set(Self::idx(x,y,z), block_id)
+        Arc::make_mut(&mut self.data).set(Self::idx(x,y,z), block_id)
     }
 
     pub fn from_block(block: BlockId, pos: ChunkPos) -> Self {
         Chunk {
             coord: pos,
-            data: PalettedData::new(block),
+            data: Arc::new(PalettedData::new(block)),
         }
     }
 }

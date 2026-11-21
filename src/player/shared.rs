@@ -23,6 +23,7 @@ pub struct PlayerPhysicsBundle {
     collider: Collider,
     locked_axes: LockedAxes,
     friction: Friction,
+    gravity: GravityScale,
 }
 
 impl Default for PlayerPhysicsBundle {
@@ -35,6 +36,7 @@ impl Default for PlayerPhysicsBundle {
                 .lock_rotation_y()
                 .lock_rotation_z(),
             friction: Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
+            gravity: GravityScale(0.0),
         }
     }
 }
@@ -84,8 +86,13 @@ pub fn apply_character_action(
     let forward = forward.with_y(0.0).normalize_or_zero(); // y is set to 0.0 to project it to the ground
     let right = player_rotation * Vec3::X; // Pos x is right
     let right = right.with_y(0.0).normalize_or_zero(); // y is set to 0.0 to project it to the ground
+    let up = player_rotation * Vec3::Y;
+    let up = up.normalize_or_zero();
 
-    let target_vel = (forward * move_axis.y + right * move_axis.x).clamp_length_max(1.0) * move_speed.speed;
+    let mut up_down_axis = if action_state.pressed(&PlayerAction::Jump) { 1.0 } else { 0.0 };
+    up_down_axis -= if action_state.pressed(&PlayerAction::Crouch) { 1.0 } else { 0.0 };
+
+    let target_vel = (forward * move_axis.y + right * move_axis.x + up * up_down_axis).clamp_length_max(1.0) * move_speed.speed;
 
     let ground_vel = forces.linear_velocity().with_y(0.0);
 
@@ -118,6 +125,7 @@ pub enum PlayerAction {
 	#[actionlike(DualAxis)]
 	LookAxes,
 	Jump,
+    Crouch,
 	Break,
 	Place,
 }

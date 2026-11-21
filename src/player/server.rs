@@ -1,10 +1,10 @@
-﻿use crate::block_id_palette;
+﻿use crate::{block_id_palette, LoadingState};
 use crate::blockdefs::BlockRegistry;
 use crate::chunks::{ChunkLoader, ChunkStream};
 use crate::player::PlayerBody;
 use crate::player::shared::{MoveSpeed, PLAYER_HEIGHT, PlayerAction, PlayerPhysicsBundle, apply_character_action};
 use crate::voxels::protocol::Chunk;
-use crate::voxels::{VoxelWorld, world_to_block};
+use crate::voxels::{world_to_block, VoxelWorld, VOXEL_SIZE};
 use avian3d::prelude::*;
 use bevy::app::{App, Plugin};
 use bevy::log::info;
@@ -18,7 +18,7 @@ pub struct ServerPlayerPlugin;
 impl Plugin for ServerPlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(handle_connected_player);
-        app.add_systems(FixedUpdate, handle_player_actions);
+        app.add_systems(FixedUpdate, handle_player_actions.run_if(in_state(LoadingState::Loaded)));
     }
 }
 
@@ -113,13 +113,13 @@ fn handle_player_actions(
         let hit_point = origin + look_dir * ray_hit_data.distance;
 
         if action_state.just_pressed(&PlayerAction::Break) {
-            let block_position = world_to_block(hit_point - (ray_hit_data.normal * 0.5));
+            let block_position = world_to_block(hit_point - (ray_hit_data.normal * 0.5 * VOXEL_SIZE));
 
         voxel_world.set_block(block_position, air_id);
         }
 
         if action_state.just_pressed(&PlayerAction::Place) {
-            let block_position = world_to_block(hit_point + (ray_hit_data.normal * 0.5));
+            let block_position = world_to_block(hit_point + (ray_hit_data.normal * 0.5 * VOXEL_SIZE));
 
             voxel_world.set_block(block_position, zart_id);
         }

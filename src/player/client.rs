@@ -12,6 +12,7 @@ use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::prelude::{GamepadStick, InputMap, MouseMove, VirtualDPad};
 use lightyear::prelude::*;
 use std::f32::consts::PI;
+use bevy::light::CascadeShadowConfigBuilder;
 
 pub struct ClientPlayerPlugin;
 impl Plugin for ClientPlayerPlugin {
@@ -64,6 +65,11 @@ fn handle_new_player(
                     },
                     ..default()
                 },
+                CascadeShadowConfigBuilder {
+                    num_cascades: 2,
+                    maximum_distance: 48.0,
+                    ..default()
+                }.build(),
                 Transform::from_xyz(0.0, PLAYER_HEIGHT / 2.0, 0.0),
                 ChildOf(entity),
             ));
@@ -102,6 +108,8 @@ fn player_input_map() -> InputMap<PlayerAction> {
         .with_dual_axis(PlayerAction::Look, GamepadStick::RIGHT)
         .with(PlayerAction::Jump, KeyCode::Space)
         .with(PlayerAction::Jump, GamepadButton::South)
+        .with(PlayerAction::Crouch, KeyCode::ControlLeft)
+        .with(PlayerAction::Crouch, GamepadButton::RightThumb)
         .with(PlayerAction::Break, MouseButton::Left)
         .with(PlayerAction::Break, GamepadButton::RightTrigger)
         .with(PlayerAction::Place, MouseButton::Right)
