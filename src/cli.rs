@@ -149,7 +149,7 @@ pub fn window_plugin() -> WindowPlugin {
         primary_window: Some(Window {
             title: "Reactor game".to_string(),
             resolution: (960, 540).into(),
-            present_mode: PresentMode::AutoVsync,
+            present_mode: PresentMode::AutoNoVsync,
             prevent_default_event_handling: true,
             ..Default::default()
         }),

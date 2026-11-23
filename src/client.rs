@@ -2,7 +2,7 @@
 use crate::voxels::client::ClientVoxelsPlugin;
 use avian3d::parry::glamx::Vec3;
 use bevy::app::{App, Plugin, Startup};
-use bevy::light::{DirectionalLight, PointLight};
+use bevy::light::DirectionalLight;
 use bevy::prelude::{Commands, Transform, default};
 
 pub struct ClientPlugin;
@@ -19,15 +19,6 @@ impl Plugin for ClientPlugin {
 fn setup(
     mut commands: Commands,
 ) {
-
-    commands.spawn((
-        PointLight {
-            shadow_maps_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(4.0, 8.0, 4.0),
-    ));
-
     commands.spawn((
         DirectionalLight {
             contact_shadows_enabled: false,

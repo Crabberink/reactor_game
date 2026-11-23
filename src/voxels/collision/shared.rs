@@ -94,7 +94,7 @@ pub fn queue_generate_chunk_collider(
     }
 }
 
-const MAX_COLLECT_PER_UPDATE: usize = 20;
+const MAX_COLLECT_PER_UPDATE: usize = 1;
 pub fn collect_generated_chunk_colliders(
     mut tasks: Query<(Entity, &mut ColliderGenTask)>,
     mut commands: Commands,
@@ -104,6 +104,7 @@ pub fn collect_generated_chunk_colliders(
     let mut collected = 0;
 
     for (entity, mut task) in &mut tasks {
+        let _s = info_span!("collect single collider").entered();
         if collected > MAX_COLLECT_PER_UPDATE { break; }
 
         let Some(optional_collider) = check_ready(&mut task.0) else { continue };
@@ -117,6 +118,7 @@ pub fn collect_generated_chunk_colliders(
             commands.entity(entity).try_remove::<Collider>();
             continue;
         };
+
 
         commands.entity(entity)
             .try_insert(collider);

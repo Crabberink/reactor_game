@@ -70,6 +70,7 @@ fn handle_new_player(
                     maximum_distance: 48.0,
                     ..default()
                 }.build(),
+                Msaa::Off,
                 Transform::from_xyz(0.0, PLAYER_HEIGHT / 2.0, 0.0),
                 ChildOf(entity),
             ));

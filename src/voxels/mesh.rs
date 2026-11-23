@@ -213,7 +213,7 @@ fn build_mesh(chunk: &Chunk, neighbors: [Option<Chunk>; 6], registry: &BlockRegi
 
 #[derive(EnumIter, Clone, Copy)]
 #[repr(u8)]
-enum ChunkNeighbor {
+pub enum ChunkNeighbor {
     Front,
     Right,
     Back,
@@ -223,7 +223,7 @@ enum ChunkNeighbor {
 }
 
 impl ChunkNeighbor {
-    fn adj_offset(&self) -> IVec3 {
+    pub fn adj_offset(&self) -> IVec3 {
         match self {
             ChunkNeighbor::Front => IVec3::new(0, 0, -1),
             ChunkNeighbor::Right => IVec3::new(1, 0, 0),
@@ -234,7 +234,7 @@ impl ChunkNeighbor {
         }
     }
 
-    fn from_offset(o: IVec3) -> Option<Self> {
+    pub fn from_offset(o: IVec3) -> Option<Self> {
         match (o.x, o.y, o.z) {
             (0, 0, -1) => Some(Self::Front),
             (1, 0, 0)  => Some(Self::Right),
